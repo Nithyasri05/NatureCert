@@ -1,6 +1,5 @@
 import Hero from '@/components/home/hero';
-import SearchSection from '@/components/home/search-section';
-import CertificationsSection from '@/components/home/certifications-section';
+import EcoFeaturesSection from '@/components/home/eco-features-section';
 import ImpactSection from '@/components/home/impact-section';
 import ResourcesSection from '@/components/home/resources-section';
 import ContactSection from '@/components/home/contact-section';
@@ -13,8 +12,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
-        <SearchSection />
-        <CertificationsSection />
+        <EcoFeaturesSection />
         <ImpactSection />
         <ResourcesSection />
         <ContactSection />

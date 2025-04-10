@@ -16,20 +16,20 @@ export default function Hero() {
         <div className="md:flex md:items-center md:space-x-8">
           <div className="md:w-1/2 mb-8 md:mb-0">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold font-heading tracking-tight mb-4">
-              Environmental Certifications for a Sustainable Future
+              Your Gateway to Sustainable Living
             </h1>
             <p className="text-lg md:text-xl opacity-90 mb-8">
-              Discover, compare, and understand the environmental certifications that are shaping our planet's future.
+              Discover practical tips, eco-friendly alternatives, and join our community of environmental advocates making a difference.
             </p>
             <div className="flex flex-wrap gap-4">
               <Button asChild size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                <Link href="/certifications">
-                  Explore Certifications
+                <Link href="/eco-challenges">
+                  Join Eco Challenges
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10">
-                <Link href="/about">
-                  Learn More
+                <Link href="/eco-chatbot">
+                  Ask Eco Assistant
                 </Link>
               </Button>
             </div>
@@ -39,20 +39,20 @@ export default function Hero() {
               <div className="grid grid-cols-2 gap-4 w-full">
                 {/* Impact Stats */}
                 <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                  <div className="text-4xl font-bold">85%</div>
-                  <div className="text-sm opacity-90">Reduction in carbon footprint with certified products</div>
+                  <div className="text-4xl font-bold">1000+</div>
+                  <div className="text-sm opacity-90">Daily eco-friendly tips</div>
                 </div>
                 <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                  <div className="text-4xl font-bold">500+</div>
-                  <div className="text-sm opacity-90">Environmental certifications analyzed</div>
+                  <div className="text-4xl font-bold">30+</div>
+                  <div className="text-sm opacity-90">Eco challenges you can complete</div>
                 </div>
                 <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                  <div className="text-4xl font-bold">12M+</div>
-                  <div className="text-sm opacity-90">Consumers educated about sustainable choices</div>
+                  <div className="text-4xl font-bold">5M+</div>
+                  <div className="text-sm opacity-90">Community members making a difference</div>
                 </div>
                 <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                  <div className="text-4xl font-bold">63%</div>
-                  <div className="text-sm opacity-90">More trust in properly certified businesses</div>
+                  <div className="text-4xl font-bold">24/7</div>
+                  <div className="text-sm opacity-90">Eco assistant available to answer your questions</div>
                 </div>
               </div>
             </div>

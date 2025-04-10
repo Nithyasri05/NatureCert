@@ -16,10 +16,12 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
   { name: 'Home', href: '/home' },
-  { name: 'Impact', href: '/impact' },
-  { name: 'Resources', href: '/resources' },
-  { name: 'About', href: '/about' },
-  { name: 'Contact', href: '/contact' },
+  { name: 'Daily Tips', href: '/daily-tips' },
+  { name: 'Eco Alternatives', href: '/eco-alternatives' },
+  { name: 'Green News', href: '/green-news' },
+  { name: 'Recycling Guide', href: '/recycling-guide' },
+  { name: 'Eco Challenges', href: '/eco-challenges' },
+  { name: 'Eco Chatbot', href: '/eco-chatbot' },
 ];
 
 export default function Header() {
