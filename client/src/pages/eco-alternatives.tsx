@@ -11,7 +11,6 @@ interface EcoAlternative {
   description: string;
   category: string;
   rating: number;
-  price: string;
   benefits: string[];
   image?: string;
 }
@@ -24,7 +23,6 @@ export default function EcoAlternatives() {
       description: "Replace plastic toothbrushes with biodegradable bamboo alternatives to reduce plastic waste.",
       category: "Bathroom",
       rating: 4.5,
-      price: "$",
       benefits: ["Biodegradable handle", "Plastic-free packaging", "Naturally antimicrobial"]
     },
     {
@@ -33,7 +31,6 @@ export default function EcoAlternatives() {
       description: "Reusable alternative to plastic wrap made from cotton infused with beeswax, jojoba oil, and tree resin.",
       category: "Kitchen",
       rating: 4.7,
-      price: "$$",
       benefits: ["Reusable for up to a year", "Washable", "Biodegradable"]
     },
     {
@@ -42,7 +39,6 @@ export default function EcoAlternatives() {
       description: "Replace single-use dryer sheets with wool dryer balls to reduce waste and energy consumption.",
       category: "Laundry",
       rating: 4.3,
-      price: "$$",
       benefits: ["Reduces drying time", "No chemicals", "Lasts for 1000+ loads"]
     },
     {
@@ -51,7 +47,6 @@ export default function EcoAlternatives() {
       description: "Durable replacement for disposable plastic water bottles that keeps drinks cold or hot.",
       category: "On the Go",
       rating: 4.8,
-      price: "$$",
       benefits: ["Eliminates plastic waste", "Doesn't leach chemicals", "Lasts for years"]
     },
     {
@@ -60,7 +55,6 @@ export default function EcoAlternatives() {
       description: "Reusable silicone bags that replace single-use plastic sandwich and storage bags.",
       category: "Kitchen",
       rating: 4.4,
-      price: "$$",
       benefits: ["Dishwasher safe", "Freezer safe", "Leak-proof"]
     },
     {
@@ -69,7 +63,6 @@ export default function EcoAlternatives() {
       description: "Phone cases made from plant-based materials that will biodegrade at end of life.",
       category: "Technology",
       rating: 4.2,
-      price: "$$",
       benefits: ["Compostable", "Protective", "Sustainable materials"]
     },
     {
@@ -78,7 +71,6 @@ export default function EcoAlternatives() {
       description: "Washable cotton pads for makeup removal and skincare that replace disposable cotton pads.",
       category: "Bathroom",
       rating: 4.6,
-      price: "$",
       benefits: ["Machine washable", "Soft on skin", "Zero waste"]
     },
     {
@@ -87,12 +79,12 @@ export default function EcoAlternatives() {
       description: "Portable phone charger that can be recharged using solar energy.",
       category: "Technology",
       rating: 4.1,
-      price: "$$$",
       benefits: ["Renewable energy", "Portable", "Emergency ready"]
     }
   ];
   
-  const categories = [...new Set(alternatives.map(item => item.category))];
+  const categoriesSet = new Set(alternatives.map(item => item.category));
+  const categories = Array.from(categoriesSet);
   
   const renderRatingStars = (rating: number) => {
     const stars = [];
@@ -145,9 +137,8 @@ export default function EcoAlternatives() {
             {alternatives.map(alt => (
               <Card key={alt.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="mb-3">
                     <h3 className="text-xl font-bold">{alt.name}</h3>
-                    <span className="text-green-700 font-bold">{alt.price}</span>
                   </div>
                   
                   <div className="flex items-center mb-3">
@@ -195,9 +186,8 @@ export default function EcoAlternatives() {
                 .map(alt => (
                   <Card key={alt.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
                     <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="mb-3">
                         <h3 className="text-xl font-bold">{alt.name}</h3>
-                        <span className="text-green-700 font-bold">{alt.price}</span>
                       </div>
                       
                       <div className="flex items-center mb-3">
