@@ -281,7 +281,7 @@ export default function RecyclingGuide() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="bg-white p-4 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">75%</p>
-                  <p className="text-sm text-neutral-600">of America's waste is recyclable</p>
+                  <p className="text-sm text-neutral-600">of India's waste is recyclable</p>
                 </div>
                 <div className="bg-white p-4 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">33%</p>

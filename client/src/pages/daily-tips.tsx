@@ -3,7 +3,18 @@ import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Leaf, ThumbsUp, MessageCircle, Share2 } from 'lucide-react';
+import { Leaf, ThumbsUp, MessageCircle, Share2, Send, Facebook, Twitter, Linkedin, Copy, X, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from '@/hooks/use-toast';
 
 interface EcoTip {
   id: number;
@@ -15,8 +26,29 @@ interface EcoTip {
   image?: string;
 }
 
+interface Comment {
+  id: number;
+  tipId: number;
+  author: string;
+  content: string;
+  createdAt: string;
+  avatar?: string;
+}
+
 export default function DailyTips() {
   const [likedTips, setLikedTips] = useState<Set<number>>(new Set());
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [currentTip, setCurrentTip] = useState<EcoTip | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState<Comment[]>([
+    { id: 1, tipId: 1, author: 'Raj Singh', content: 'This has been a game-changer for me. I carry my water bottle everywhere now!', createdAt: 'Apr 10, 2025' },
+    { id: 2, tipId: 1, author: 'Priya Patel', content: 'I switched to a steel bottle last year. No more plastic waste!', createdAt: 'Apr 10, 2025' },
+    { id: 3, tipId: 2, author: 'Vikram Malhotra', content: 'Started composting last month. My plants are loving it!', createdAt: 'Apr 9, 2025' },
+    { id: 4, tipId: 3, author: 'Ananya Sharma', content: 'Changed all my bulbs to LED and saw my electricity bill drop significantly.', createdAt: 'Apr 8, 2025' },
+  ]);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const { toast } = useToast();
   
   const tips: EcoTip[] = [
     {
@@ -81,6 +113,77 @@ export default function DailyTips() {
     });
   };
   
+  const openCommentDialog = (tip: EcoTip) => {
+    setCurrentTip(tip);
+    setCommentDialogOpen(true);
+  };
+  
+  const openShareDialog = (tip: EcoTip) => {
+    setCurrentTip(tip);
+    setShareDialogOpen(true);
+    setCopiedToClipboard(false);
+  };
+  
+  const handleCommentSubmit = () => {
+    if (!newComment.trim() || !currentTip) return;
+    
+    const comment: Comment = {
+      id: comments.length + 1,
+      tipId: currentTip.id,
+      author: 'You',
+      content: newComment,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+    
+    setComments([...comments, comment]);
+    setNewComment('');
+    toast({
+      title: "Comment Added",
+      description: "Your comment has been posted successfully!",
+    });
+  };
+  
+  const filterCommentsByTip = (tipId: number) => {
+    return comments.filter(comment => comment.tipId === tipId);
+  };
+  
+  const getTipCommentsCount = (tipId: number) => {
+    return filterCommentsByTip(tipId).length;
+  };
+  
+  const handleShare = (platform: string) => {
+    if (!currentTip) return;
+    
+    const url = `${window.location.origin}/eco-tips/${currentTip.id}`;
+    const text = `Check out this eco tip: ${currentTip.title}`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(`${text} - ${url}`);
+        setCopiedToClipboard(true);
+        setTimeout(() => setCopiedToClipboard(false), 3000);
+        toast({
+          title: "Link Copied",
+          description: "The link has been copied to your clipboard!",
+        });
+        return;
+    }
+    
+    window.open(shareUrl, '_blank');
+    setShareDialogOpen(false);
+  };
+  
   return (
     <div>
       <Header />
@@ -129,11 +232,21 @@ export default function DailyTips() {
                       <ThumbsUp className="h-4 w-4 mr-1" />
                       <span>{likedTips.has(tip.id) ? tip.likes + 1 : tip.likes}</span>
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-neutral-500">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-neutral-500"
+                      onClick={() => openCommentDialog(tip)}
+                    >
                       <MessageCircle className="h-4 w-4 mr-1" />
-                      <span>{tip.comments}</span>
+                      <span>{getTipCommentsCount(tip.id)}</span>
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-neutral-500">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-neutral-500"
+                      onClick={() => openShareDialog(tip)}
+                    >
                       <Share2 className="h-4 w-4 mr-1" />
                       <span>Share</span>
                     </Button>
@@ -151,6 +264,123 @@ export default function DailyTips() {
         </div>
       </main>
       <Footer />
+      
+      {/* Comments Dialog */}
+      <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>{currentTip?.title}</DialogTitle>
+            <DialogDescription>
+              Join the conversation and share your thoughts on this eco tip.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <h3 className="font-medium mb-4">Comments ({currentTip ? filterCommentsByTip(currentTip.id).length : 0})</h3>
+            
+            <div className="space-y-4 max-h-[300px] overflow-y-auto mb-4">
+              {currentTip && filterCommentsByTip(currentTip.id).map((comment) => (
+                <div key={comment.id} className="flex space-x-3">
+                  <Avatar>
+                    <AvatarFallback>{comment.author.charAt(0)}</AvatarFallback>
+                    {comment.avatar && <AvatarImage src={comment.avatar} />}
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center">
+                      <h4 className="font-medium">{comment.author}</h4>
+                      <span className="ml-2 text-xs text-neutral-500">{comment.createdAt}</span>
+                    </div>
+                    <p className="text-neutral-700 mt-1">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {currentTip && filterCommentsByTip(currentTip.id).length === 0 && (
+                <p className="text-neutral-500 text-center py-4">Be the first to comment on this tip!</p>
+              )}
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <Textarea 
+                placeholder="Write your comment here..." 
+                className="min-h-[100px]"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button onClick={handleCommentSubmit} className="flex items-center">
+                  <Send className="h-4 w-4 mr-2" />
+                  Post Comment
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Share This Tip</DialogTitle>
+            <DialogDescription>
+              Share this eco tip with friends and family to spread environmental awareness.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-4 gap-4 py-4">
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center p-4 h-auto" 
+              onClick={() => handleShare('facebook')}
+            >
+              <Facebook className="h-6 w-6 mb-2" />
+              <span className="text-xs">Facebook</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center p-4 h-auto" 
+              onClick={() => handleShare('twitter')}
+            >
+              <Twitter className="h-6 w-6 mb-2" />
+              <span className="text-xs">Twitter</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center p-4 h-auto" 
+              onClick={() => handleShare('linkedin')}
+            >
+              <Linkedin className="h-6 w-6 mb-2" />
+              <span className="text-xs">LinkedIn</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center justify-center p-4 h-auto" 
+              onClick={() => handleShare('copy')}
+            >
+              {copiedToClipboard ? <Check className="h-6 w-6 mb-2 text-green-500" /> : <Copy className="h-6 w-6 mb-2" />}
+              <span className="text-xs">{copiedToClipboard ? 'Copied' : 'Copy Link'}</span>
+            </Button>
+          </div>
+          
+          <div className="pt-2">
+            <div className="flex">
+              <Input 
+                readOnly 
+                value={currentTip ? `${window.location.origin}/eco-tips/${currentTip.id}` : ''} 
+                className="flex-1 rounded-r-none"
+              />
+              <Button 
+                variant="default" 
+                className="rounded-l-none"
+                onClick={() => handleShare('copy')}
+              >
+                {copiedToClipboard ? 'Copied!' : 'Copy'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
