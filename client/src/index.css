@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 33% 96%;
+    --foreground: 20 10% 20%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 20 10% 20%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 10% 20%;
+    
+    --primary: 122 39% 33%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 25 21% 47%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    
+    --accent: 122 25% 65%;
+    --accent-foreground: 122 39% 25%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 20 5% 90%;
+    --input: 20 5% 90%;
+    --ring: 122 39% 33%;
+    
+    --radius: 0.5rem;
+    
+    --chart-1: 122 39% 33%;
+    --chart-2: 25 21% 47%;
+    --chart-3: 122 25% 65%;
+    --chart-4: 140 40% 45%;
+    --chart-5: 36 100% 50%;
+  }
+ 
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-semibold;
+  }
+  
+  .card-hover-effect {
+    @apply transition-all duration-300;
+  }
+  
+  .card-hover-effect:hover {
+    @apply transform -translate-y-1 shadow-lg;
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: 'Montserrat', system-ui, sans-serif;
+  }
+  
+  .progress-ring-circle {
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+}
