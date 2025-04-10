@@ -23,57 +23,57 @@ export default function GreenNews() {
   const articles: NewsArticle[] = [
     {
       id: 1,
-      title: "New Report Shows Significant Increase in Renewable Energy Adoption",
-      summary: "Global renewable energy capacity increased by 9.6% in 2022, despite supply chain challenges and rising costs of materials.",
-      date: "May 12, 2023",
-      readTime: "5 min",
-      categories: ["Renewable Energy", "Global"],
-      source: "Green Energy Journal"
+      title: "Global Carbon Emissions Drop 15% Following Implementation of Paris+20 Agreement",
+      summary: "The landmark Paris+20 Agreement signed in 2023 has led to its first major success as global carbon emissions have decreased by 15% compared to 2020 levels, surpassing the initial target of 12%.",
+      date: "April 10, 2025",
+      readTime: "6 min",
+      categories: ["Climate Policy", "Global"],
+      source: "Global Climate Monitor"
     },
     {
       id: 2,
-      title: "Ocean Cleanup Project Removes 100 Tons of Plastic from Pacific Garbage Patch",
-      summary: "Innovative ocean cleanup technology successfully extracted 100 tons of plastic waste from the Great Pacific Garbage Patch in its latest expedition.",
-      date: "June 3, 2023",
-      readTime: "4 min",
-      categories: ["Ocean Conservation", "Plastic Pollution"],
-      source: "Marine Conservation Today"
+      title: "Breakthrough in Carbon Capture Technology Achieves 90% Efficiency",
+      summary: "Scientists have developed a new carbon capture technology that can remove CO2 from the atmosphere with 90% efficiency at half the cost of previous methods, potentially revolutionizing climate change mitigation efforts.",
+      date: "April 8, 2025",
+      readTime: "5 min",
+      categories: ["Innovation", "Carbon Capture"],
+      source: "Tech Environmental Review"
     },
     {
       id: 3,
-      title: "Major Corporation Commits to Net-Zero Carbon Emissions by 2030",
-      summary: "One of the world's largest consumer goods companies announced ambitious new targets to achieve net-zero carbon emissions across its operations by 2030.",
-      date: "June 10, 2023",
-      readTime: "6 min",
-      categories: ["Corporate Sustainability", "Climate Action"],
-      source: "Business & Environment"
+      title: "Vertical Farming Expansion Reduces Agricultural Land Use by 20% in Urban Areas",
+      summary: "The rapid adoption of vertical farming technologies in major cities worldwide has reduced the need for traditional agricultural land by 20%, while increasing food production and reducing water usage by 90%.",
+      date: "April 5, 2025",
+      readTime: "4 min",
+      categories: ["Sustainable Agriculture", "Urban Development"],
+      source: "Future Farming Today"
     },
     {
       id: 4,
-      title: "New Study Links Air Pollution to Cognitive Decline",
-      summary: "Research published in a leading medical journal provides new evidence linking long-term exposure to air pollution with accelerated cognitive decline in older adults.",
-      date: "May 28, 2023",
-      readTime: "7 min",
-      categories: ["Health", "Air Quality"],
-      source: "Environmental Health Journal"
+      title: "Biodegradable Microplastic Alternative Now Standard in 70% of Consumer Products",
+      summary: "Following strict regulations passed in 2023, biodegradable alternatives to microplastics are now used in 70% of consumer products globally, dramatically reducing plastic pollution in waterways.",
+      date: "April 3, 2025",
+      readTime: "3 min",
+      categories: ["Plastic Pollution", "Consumer Goods"],
+      source: "Sustainable Materials Journal"
     },
     {
       id: 5,
-      title: "Innovative Plant-Based Packaging Solution Wins Sustainability Award",
-      summary: "A startup has developed a compostable packaging material made from agricultural waste that could replace single-use plastics in food packaging.",
-      date: "June 15, 2023",
-      readTime: "3 min",
-      categories: ["Innovation", "Packaging"],
-      source: "Sustainable Business Insider"
+      title: "Nuclear Fusion Energy Now Commercially Viable, First Power Plant Opens",
+      summary: "After decades of research, the world's first commercial nuclear fusion power plant has begun operations, providing clean, virtually limitless energy with zero carbon emissions and minimal radioactive waste.",
+      date: "March 30, 2025",
+      readTime: "7 min",
+      categories: ["Energy", "Innovation"],
+      source: "Clean Energy Report"
     },
     {
       id: 6,
-      title: "Record-Breaking Heat Wave Linked to Climate Change, Scientists Say",
-      summary: "Scientists attribute the unprecedented heat wave affecting millions to human-induced climate change, warning that such events will become more frequent and intense.",
-      date: "June 20, 2023",
-      readTime: "8 min",
-      categories: ["Climate Change", "Weather"],
-      source: "Climate Science Network"
+      title: "Amazon Rainforest Recovery Program Shows 30% Increase in Biodiversity",
+      summary: "The international Amazon Rainforest Recovery Initiative launched in 2023 has reported a 30% increase in biodiversity in restored areas, with indigenous-led conservation efforts proving most effective.",
+      date: "March 25, 2025",
+      readTime: "5 min",
+      categories: ["Conservation", "Biodiversity"],
+      source: "Global Ecology Network"
     }
   ];
   
