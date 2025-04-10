@@ -3,7 +3,7 @@ import Footer from '@/components/layout/footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Star, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink } from 'lucide-react';
 
 interface EcoAlternative {
   id: number;
@@ -160,14 +160,10 @@ export default function EcoAlternatives() {
                     </ul>
                   </div>
                   
-                  <div className="flex justify-between mt-4 pt-4 border-t border-neutral-100">
+                  <div className="flex justify-center mt-4 pt-4 border-t border-neutral-100">
                     <Button variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Learn More
-                    </Button>
-                    <Button variant="default" size="sm">
-                      <ShoppingBag className="h-4 w-4 mr-2" />
-                      Shop Now
                     </Button>
                   </div>
                 </CardContent>
@@ -209,14 +205,10 @@ export default function EcoAlternatives() {
                         </ul>
                       </div>
                       
-                      <div className="flex justify-between mt-4 pt-4 border-t border-neutral-100">
+                      <div className="flex justify-center mt-4 pt-4 border-t border-neutral-100">
                         <Button variant="outline" size="sm">
                           <ExternalLink className="h-4 w-4 mr-2" />
                           Learn More
-                        </Button>
-                        <Button variant="default" size="sm">
-                          <ShoppingBag className="h-4 w-4 mr-2" />
-                          Shop Now
                         </Button>
                       </div>
                     </CardContent>
