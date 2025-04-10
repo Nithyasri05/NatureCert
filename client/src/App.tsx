@@ -6,12 +6,16 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Welcome from "@/pages/welcome";
 import AuthPage from "@/pages/auth-page";
-import Certifications from "@/pages/certifications";
-import CertificationDetail from "@/pages/certification-detail";
 import Resources from "@/pages/resources";
 import Impact from "@/pages/impact";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
+import DailyTips from "@/pages/daily-tips";
+import EcoAlternatives from "@/pages/eco-alternatives";
+import GreenNews from "@/pages/green-news";
+import RecyclingGuide from "@/pages/recycling-guide";
+import EcoChallenges from "@/pages/eco-challenges";
+import EcoChatbot from "@/pages/eco-chatbot";
 
 function Router() {
   return (
@@ -19,8 +23,12 @@ function Router() {
       <Route path="/" component={Welcome} />
       <Route path="/home" component={Home} />
       <Route path="/auth" component={AuthPage} />
-      <Route path="/certifications" component={Certifications} />
-      <Route path="/certifications/:id" component={CertificationDetail} />
+      <Route path="/daily-tips" component={DailyTips} />
+      <Route path="/eco-alternatives" component={EcoAlternatives} />
+      <Route path="/green-news" component={GreenNews} />
+      <Route path="/recycling-guide" component={RecyclingGuide} />
+      <Route path="/eco-challenges" component={EcoChallenges} />
+      <Route path="/eco-chatbot" component={EcoChatbot} />
       <Route path="/resources" component={Resources} />
       <Route path="/impact" component={Impact} />
       <Route path="/about" component={About} />
