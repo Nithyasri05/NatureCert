@@ -77,8 +77,8 @@ export default function AuthPage() {
           variant: "default",
         });
         
-        // Redirect to home page
-        setLocation('/');
+        // Redirect to main site home page
+        setLocation('/home');
       }, 1500);
     } catch (error) {
       toast({
@@ -106,8 +106,8 @@ export default function AuthPage() {
           variant: "default",
         });
         
-        // Redirect to home page
-        setLocation('/');
+        // Redirect to main site home page
+        setLocation('/home');
       }, 1500);
     } catch (error) {
       toast({
@@ -320,7 +320,7 @@ export default function AuthPage() {
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => setLocation('/')}
+              onClick={() => setLocation('/home')}
             >
               Continue as Guest
             </Button>

@@ -15,8 +15,7 @@ interface NavLink {
 }
 
 const navLinks: NavLink[] = [
-  { name: 'Home', href: '/' },
-  { name: 'Certifications', href: '/certifications' },
+  { name: 'Home', href: '/home' },
   { name: 'Impact', href: '/impact' },
   { name: 'Resources', href: '/resources' },
   { name: 'About', href: '/about' },
@@ -31,7 +30,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0 flex items-center">
+            <Link href="/home" className="flex-shrink-0 flex items-center">
               <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary mr-2">
                 <Leaf className="h-5 w-5 text-white" />
               </div>

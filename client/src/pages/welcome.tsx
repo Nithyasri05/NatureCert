@@ -14,8 +14,12 @@ export default function Welcome() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-teal-50">
       <div className="max-w-md w-full mx-auto p-8 bg-white rounded-xl shadow-lg text-center">
         <div className="mb-8">
-          <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Leaf className="h-12 w-12 text-primary" />
+          <div className="relative h-24 w-24 mx-auto mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-green-500 rounded-full animate-pulse"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-blue-400 to-green-400 rounded-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-white/10 rounded-full"></div>
+              <Leaf className="h-12 w-12 text-white relative z-10" />
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-neutral-800 mb-4">Welcome to NatureCert</h1>
           <p className="text-neutral-600 mb-6">
@@ -26,11 +30,16 @@ export default function Welcome() {
         
         <Button 
           size="lg" 
-          className="w-full py-6 text-lg rounded-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+          className="w-full py-6 text-lg font-bold rounded-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
           onClick={goToLogin}
         >
-          <Leaf className="mr-2 h-5 w-5" />
-          Go Green
+          <div className="inline-flex items-center">
+            <div className="relative mr-3">
+              <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"></div>
+              <Leaf className="h-6 w-6 relative z-10" />
+            </div>
+            Go Green
+          </div>
         </Button>
         
         <p className="mt-6 text-sm text-neutral-500">
