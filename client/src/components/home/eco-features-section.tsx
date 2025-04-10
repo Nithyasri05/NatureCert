@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Leaf, Droplet, Newspaper, Recycle, Trophy, MessageCircle } from 'lucide-react';
+import { Leaf, Droplet, Newspaper, Recycle, Trophy, MessageCircle, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -48,6 +48,14 @@ export default function EcoFeaturesSection() {
       icon: <Recycle className="h-8 w-8" />,
       link: '/recycling-guide',
       color: 'bg-amber-100 text-amber-700'
+    },
+    {
+      id: 'carbon-footprint',
+      title: 'Carbon Footprint',
+      description: 'Calculate your personal carbon footprint and get tips to reduce your impact.',
+      icon: <BarChart className="h-8 w-8" />,
+      link: '/carbon-footprint',
+      color: 'bg-red-100 text-red-700'
     },
     {
       id: 'eco-challenges',

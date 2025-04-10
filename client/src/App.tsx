@@ -16,6 +16,7 @@ import GreenNews from "@/pages/green-news";
 import RecyclingGuide from "@/pages/recycling-guide";
 import EcoChallenges from "@/pages/eco-challenges";
 import EcoChatbot from "@/pages/eco-chatbot";
+import CarbonFootprint from "@/pages/carbon-footprint";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/recycling-guide" component={RecyclingGuide} />
       <Route path="/eco-challenges" component={EcoChallenges} />
       <Route path="/eco-chatbot" component={EcoChatbot} />
+      <Route path="/carbon-footprint" component={CarbonFootprint} />
       <Route path="/resources" component={Resources} />
       <Route path="/impact" component={Impact} />
       <Route path="/about" component={About} />
