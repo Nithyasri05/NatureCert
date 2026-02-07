@@ -17,6 +17,7 @@ import { eq, like, ilike, asc, desc, and, or } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import OpenAI from "openai";
 
 // @ts-ignore - connectPg has correct types but TypeScript is having issues
 const PostgresSessionStore = connectPg(session);
@@ -101,6 +102,79 @@ export class DatabaseStorage implements IStorage {
     this.initSampleDataIfNeeded();
   }
 
+  // Get today's daily tip (by date string YYYY-MM-DD)
+  async getDailyTip(dateStr?: string) {
+    const target = dateStr ?? new Date().toISOString().split("T")[0];
+    const tips = await db.select().from(ecoTips).where(eq(ecoTips.category, "daily-tip"));
+    const found = tips.find(t => {
+      try {
+        const d = new Date(t.createdAt).toISOString().split("T")[0];
+        return d === target;
+      } catch (e) {
+        return false;
+      }
+    });
+    return found;
+  }
+
+  // Generate a daily tip (OpenAI if available, otherwise rotate from built-in list) and store it
+  async generateAndStoreDailyTip(dateStr?: string) {
+    const target = dateStr ?? new Date().toISOString().split("T")[0];
+
+    const openaiKey = process.env.OPENAI_API_KEY;
+    let title = "";
+    let description = "";
+
+    if (openaiKey) {
+      try {
+        const client = new OpenAI({ apiKey: openaiKey });
+        const prompt = `Generate a concise eco-friendly daily tip for general audiences. Return only JSON with keys \"title\" and \"description\". Keep title under  eight words and description under 200 characters.`;
+        const resp = await client.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.6,
+          max_tokens: 200
+        });
+
+        const raw = String(resp.choices?.[0]?.message?.content ?? "");
+        try {
+          const parsed = JSON.parse(raw);
+          title = parsed.title ?? "Daily Eco Tip";
+          description = parsed.description ?? "Try a small sustainable action today.";
+        } catch (e) {
+          // fallback to text parsing
+          const lines = raw.split('\n').filter(Boolean);
+          title = lines[0] ?? "Daily Eco Tip";
+          description = lines.slice(1).join(' ') || "Try a small sustainable action today.";
+        }
+      } catch (e) {
+        console.error("OpenAI generation failed, falling back:", e);
+      }
+    }
+
+    // Fallback deterministic tips
+    if (!title) {
+      const fallbackTips = [
+        { title: "Meatless Monday", description: "Try one meatless day this week to reduce your carbon footprint." },
+        { title: "Carry a Reusable Bottle", description: "Swap single-use plastic bottles for a reusable one to cut plastic waste." },
+        { title: "Switch to LED Bulbs", description: "LED bulbs use far less energy and last much longer than incandescent bulbs." },
+        { title: "Unplug Idle Electronics", description: "Unplug chargers and devices when not in use to avoid phantom energy draw." },
+        { title: "Compost Kitchen Scraps", description: "Start a small compost bin to divert food waste and enrich your garden soil." }
+      ];
+      const idx = new Date(target).getDate() % fallbackTips.length;
+      title = fallbackTips[idx].title;
+      description = fallbackTips[idx].description;
+    }
+
+    try {
+      const [inserted] = await db.insert(ecoTips).values({ title, description, category: "daily-tip", imageUrl: "" } as any).returning();
+      return inserted;
+    } catch (e) {
+      console.error("Failed to store daily tip:", e);
+      return { title, description, category: "daily-tip" } as any;
+    }
+  }
+
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -108,12 +182,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    // allow lookup by username OR email for flexibility
+    const [user] = await db.select().from(users).where(or(eq(users.username, username), eq(users.email, username)));
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [user] = await db.insert(users).values(insertUser as any).returning();
     return user;
   }
   
@@ -143,7 +218,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createCertification(insertCertification: InsertCertification): Promise<Certification> {
-    const [certification] = await db.insert(certifications).values(insertCertification).returning();
+    const [certification] = await db.insert(certifications).values(insertCertification as any).returning();
     return certification;
   }
   
@@ -162,13 +237,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createResource(insertResource: InsertResource): Promise<Resource> {
-    const [resource] = await db.insert(resources).values(insertResource).returning();
+    const [resource] = await db.insert(resources).values(insertResource as any).returning();
     return resource;
   }
   
   // Contact submissions
   async createContactSubmission(insertSubmission: InsertContactSubmission): Promise<ContactSubmission> {
-    const [submission] = await db.insert(contactSubmissions).values(insertSubmission).returning();
+    const [submission] = await db.insert(contactSubmissions).values(insertSubmission as any).returning();
     return submission;
   }
   
@@ -191,7 +266,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createEcoTip(insertTip: InsertEcoTip): Promise<EcoTip> {
-    const [tip] = await db.insert(ecoTips).values(insertTip).returning();
+    const [tip] = await db.insert(ecoTips).values(insertTip as any).returning();
     return tip;
   }
   
@@ -246,7 +321,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createEcoChallenge(insertChallenge: InsertEcoChallenge): Promise<EcoChallenge> {
-    const [challenge] = await db.insert(ecoChallenges).values(insertChallenge).returning();
+    const [challenge] = await db.insert(ecoChallenges).values(insertChallenge as any).returning();
     return challenge;
   }
   
@@ -329,7 +404,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createEcoAlternative(insertAlternative: InsertEcoAlternative): Promise<EcoAlternative> {
-    const [alternative] = await db.insert(ecoAlternatives).values(insertAlternative).returning();
+    const [alternative] = await db.insert(ecoAlternatives).values(insertAlternative as any).returning();
     return alternative;
   }
   
@@ -356,7 +431,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createGreenNewsArticle(insertArticle: InsertGreenNewsArticle): Promise<GreenNewsArticle> {
-    const [article] = await db.insert(greenNewsArticles).values(insertArticle).returning();
+    const [article] = await db.insert(greenNewsArticles).values(insertArticle as any).returning();
     return article;
   }
   
@@ -371,7 +446,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createRecyclingCategory(insertCategory: InsertRecyclingCategory): Promise<RecyclingCategory> {
-    const [category] = await db.insert(recyclingCategories).values(insertCategory).returning();
+    const [category] = await db.insert(recyclingCategories).values(insertCategory as any).returning();
     return category;
   }
   
@@ -389,7 +464,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createRecyclingItem(insertItem: InsertRecyclingItem): Promise<RecyclingItem> {
-    const [item] = await db.insert(recyclingItems).values(insertItem).returning();
+    const [item] = await db.insert(recyclingItems).values(insertItem as any).returning();
     return item;
   }
   
@@ -511,6 +586,56 @@ export class DatabaseStorage implements IStorage {
           readTime: "10 min read",
           link: "/resources/5"
         }
+        ,
+        {
+          title: "10 Bold Ideas Driving a Sustainable Future (TED playlist)",
+          type: "Webinar",
+          description: "A curated TED playlist with talks on sustainable innovation, circular economy, and climate solutions.",
+          imageUrl: "https://talkstar-assets.s3.amazonaws.com/production/playlists/playlist_846/2aa4cdf4-2510-48ca-9436-f4bbf46a3fff/sustainable_future-2000x2000.jpg",
+          readTime: "Multiple talks",
+          link: "https://www.ted.com/playlists/846/10_bold_ideas_driving_a_sustainable_future"
+        },
+        {
+          title: "The Brilliance of Bacteria (TED Talk)",
+          type: "Webinar",
+          description: "Patricia Aymà Maldonado explains how microbes can help tackle waste and enable circular approaches to materials.",
+          imageUrl: "",
+          readTime: "18 min",
+          link: "https://www.ted.com/talks/patricia_ayma_maldonado_the_brilliance_of_bacteria_and_how_they_combat_waste"
+        },
+        {
+          title: "Sustainable Development Goals — Overview (UN)",
+          type: "Guide",
+          description: "Official United Nations page describing the 17 Sustainable Development Goals, targets, and key reports.",
+          imageUrl: "https://sdgs.un.org/themes/custom/porto/assets/images/logo-footer-en.svg",
+          readTime: "Overview",
+          link: "https://sdgs.un.org/goals"
+        },
+        {
+          title: "Sustainability as a Business-Model Transformation (HBR)",
+          type: "Case Study",
+          description: "Harvard Business Review article discussing how companies transform their business models around sustainability.",
+          imageUrl: "",
+          readTime: "12 min read",
+          link: "https://hbr.org/2025/05/sustainability-as-a-business-model-transformation"
+        }
+        ,
+        {
+          title: "The Story of Stuff Project",
+          type: "Webinar",
+          description: "Short documentaries and educational resources about consumption, waste, and sustainable alternatives.",
+          imageUrl: "https://www.storyofstuff.org/wp-content/themes/storyofstuff/dist/images/logo-story-of-stuff.svg",
+          readTime: "Various",
+          link: "https://www.storyofstuff.org"
+        },
+        {
+          title: "Plastic Pollution (National Geographic)",
+          type: "Guide",
+          description: "In-depth reporting and multimedia on plastic pollution, its impacts, and solutions.",
+          imageUrl: "https://www.nationalgeographic.com/content/dam/environment/2020/07/plastic-pollution/NatGeo-Plastic-Header.jpg",
+          readTime: "Long read",
+          link: "https://www.nationalgeographic.com/environment/article/plastic-pollution"
+        }
       ];
       
       // Add sample resources to database
@@ -525,7 +650,7 @@ export class DatabaseStorage implements IStorage {
           summary: "The landmark Paris+20 Agreement signed in 2023 has led to its first major success as global carbon emissions have decreased by 15% compared to 2020 levels, surpassing the initial target of 12%.",
           date: "April 10, 2025",
           readTime: "6 min",
-          categories: JSON.stringify(["Climate Policy", "Global"]),
+          categories: ["Climate Policy", "Global"],
           source: "Global Climate Monitor",
           imageUrl: ""
         },
@@ -534,7 +659,7 @@ export class DatabaseStorage implements IStorage {
           summary: "Scientists have developed a new carbon capture technology that can remove CO2 from the atmosphere with 90% efficiency at half the cost of previous methods, potentially revolutionizing climate change mitigation efforts.",
           date: "April 8, 2025",
           readTime: "5 min",
-          categories: JSON.stringify(["Innovation", "Carbon Capture"]),
+          categories: ["Innovation", "Carbon Capture"],
           source: "Tech Environmental Review",
           imageUrl: ""
         },
@@ -543,7 +668,7 @@ export class DatabaseStorage implements IStorage {
           summary: "The rapid adoption of vertical farming technologies in major cities worldwide has reduced the need for traditional agricultural land by 20%, while increasing food production and reducing water usage by 90%.",
           date: "April 5, 2025",
           readTime: "4 min",
-          categories: JSON.stringify(["Sustainable Agriculture", "Urban Development"]),
+          categories: ["Sustainable Agriculture", "Urban Development"],
           source: "Future Farming Today",
           imageUrl: ""
         },
@@ -552,7 +677,7 @@ export class DatabaseStorage implements IStorage {
           summary: "Following strict regulations passed in 2023, biodegradable alternatives to microplastics are now used in 70% of consumer products globally, dramatically reducing plastic pollution in waterways.",
           date: "April 3, 2025",
           readTime: "3 min",
-          categories: JSON.stringify(["Plastic Pollution", "Consumer Goods"]),
+          categories: ["Plastic Pollution", "Consumer Goods"],
           source: "Sustainable Materials Journal",
           imageUrl: ""
         },
@@ -561,7 +686,7 @@ export class DatabaseStorage implements IStorage {
           summary: "After decades of research, the world's first commercial nuclear fusion power plant has begun operations, providing clean, virtually limitless energy with zero carbon emissions and minimal radioactive waste.",
           date: "March 30, 2025",
           readTime: "7 min",
-          categories: JSON.stringify(["Energy", "Innovation"]),
+          categories: ["Energy", "Innovation"],
           source: "Clean Energy Report",
           imageUrl: ""
         },
@@ -570,7 +695,7 @@ export class DatabaseStorage implements IStorage {
           summary: "The international Amazon Rainforest Recovery Initiative launched in 2023 has reported a 30% increase in biodiversity in restored areas, with indigenous-led conservation efforts proving most effective.",
           date: "March 25, 2025",
           readTime: "5 min",
-          categories: JSON.stringify(["Conservation", "Biodiversity"]),
+          categories: ["Conservation", "Biodiversity"],
           source: "Global Ecology Network",
           imageUrl: ""
         }

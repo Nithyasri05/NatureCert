@@ -88,7 +88,7 @@ export default function ContactSection() {
                   <MapPin className="w-5 h-5 mr-4 mt-1" />
                   <div>
                     <h3 className="font-bold">Our Location</h3>
-                    <p className="opacity-90">123 Sustainability Ave, Green City, EC0 123</p>
+                    <p className="opacity-90">3856 Sri Nagar,India </p>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -102,7 +102,7 @@ export default function ContactSection() {
                   <Phone className="w-5 h-5 mr-4 mt-1" />
                   <div>
                     <h3 className="font-bold">Call Us</h3>
-                    <p className="opacity-90">+1 (555) 123-4567</p>
+                    <p className="opacity-90">+91 9876543210</p>
                   </div>
                 </div>
               </div>

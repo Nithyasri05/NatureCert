@@ -93,6 +93,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Daily tip endpoint: returns today's tip, generating/storing it if missing
+  app.get("/api/daily-tip", async (req: Request, res: Response) => {
+    try {
+      const date = req.query.date as string | undefined;
+      const today = date ?? new Date().toISOString().split('T')[0];
+
+      let tip = await storage.getDailyTip(today as string);
+      if (!tip) {
+        tip = await storage.generateAndStoreDailyTip(today as string);
+      }
+
+      res.json(tip);
+    } catch (error) {
+      console.error('Error fetching daily tip:', error);
+      res.status(500).json({ message: 'Failed to fetch daily tip' });
+    }
+  });
+
   // Contact form submission
   app.post("/api/contact", async (req: Request, res: Response) => {
     try {

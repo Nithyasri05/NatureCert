@@ -81,22 +81,82 @@ export default function EcoChatbot() {
     setSelectedImage(null);
     setIsTyping(true);
     
-    // Simulate AI response (would be replaced with actual API call)
+    // Enhanced India-specific environmental responses
     setTimeout(() => {
-      const responses = [
-        "Based on current research, one of the most effective individual actions to reduce carbon footprint is adopting a plant-based diet or significantly reducing meat consumption, particularly beef and lamb.",
-        "To reduce plastic waste at home, try using reusable containers, buying in bulk, using bar soap instead of liquid soap in plastic dispensers, and using reusable shopping bags.",
-        "Electronic waste (e-waste) should never go in regular trash. Look for dedicated e-waste recycling centers in your area, or check if your local electronics retailers offer take-back programs.",
-        "The term 'carbon neutral' means that any CO2 released into the atmosphere from a company's activities is balanced by an equivalent amount being removed.",
-        "To conserve water at home, fix leaky faucets, take shorter showers, install water-efficient fixtures, only run full loads of laundry and dishes, and collect rainwater for gardening."
-      ];
+      // India-specific environmental knowledge base
+      const indiaEcoResponses: {[key: string]: string[]} = {
+        'recycling': [
+          "In India, proper waste segregation is essential. Divide your waste into wet waste (food scraps), dry waste (paper, plastic), and hazardous waste (batteries, chemicals). Many Indian cities now have door-to-door segregated waste collection.",
+          "E-waste recycling in India is regulated under the E-Waste Management Rules. You can deposit e-waste at authorized collection centers managed by manufacturers or retailers. Companies like Attero and Ecoreco offer e-waste recycling services across major Indian cities.",
+          "For plastic recycling in India, look for the BIS (Bureau of Indian Standards) recycling codes on plastic products. PET bottles (code 1) are highly recyclable in India and have a strong recycling infrastructure in most cities."
+        ],
+        'water': [
+          "Water conservation is crucial in India. Consider installing a rainwater harvesting system, which is now mandatory for new buildings in many Indian states including Tamil Nadu, Karnataka, and Maharashtra.",
+          "To save water in Indian households, use bucket baths instead of showers when possible, which can save up to 80% of water. Also, consider installing low-flow taps and dual-flush toilets.",
+          "In India, you can reuse greywater from kitchen and laundry for watering plants. Simple filtering systems using natural materials like sand and charcoal are effective and affordable."
+        ],
+        'energy': [
+          "Solar power is highly viable in India with 300+ sunny days annually. The government offers subsidies up to 40% for rooftop solar installations through the Ministry of New and Renewable Energy (MNRE) schemes.",
+          "For Indian homes, replacing regular lights with LED bulbs can reduce electricity consumption by 80%. The government's UJALA scheme offers LED bulbs at subsidized rates.",
+          "During hot Indian summers, setting your AC to 24-26°C instead of 18-20°C can reduce electricity consumption by up to 30%. Using ceiling fans alongside can help maintain comfort while saving energy."
+        ],
+        'agriculture': [
+          "Organic farming is growing in India. Look for products with the 'India Organic' certification logo issued by APEDA (Agricultural and Processed Food Products Export Development Authority).",
+          "Traditional Indian agricultural practices like mixed cropping and using neem as a natural pesticide are sustainable alternatives to chemical-intensive farming.",
+          "Urban farming is gaining popularity in Indian cities. Terrace gardens and vertical farming using hydroponic systems are suitable for growing vegetables in limited spaces in urban areas."
+        ],
+        'pollution': [
+          "To combat air pollution in Indian cities, consider using public transport, carpooling, or electric vehicles. The government offers incentives under the FAME II scheme for electric vehicle purchases.",
+          "During high pollution days in North Indian cities, use N95 or N99 masks which filter out PM2.5 particles. Indoor air purifiers with HEPA filters are effective for home use.",
+          "Noise pollution in Indian urban areas often exceeds permissible limits. You can report noise pollution violations to your local Pollution Control Board or municipal corporation."
+        ],
+        'climate': [
+          "India has committed to achieving net-zero carbon emissions by 2070 and generating 50% of its electricity from renewable sources by 2030 under its updated NDC (Nationally Determined Contribution).",
+          "Climate change is affecting Indian monsoon patterns, with more extreme rainfall events. Rainwater harvesting and flood-resistant architecture are becoming increasingly important.",
+          "Heat waves in India are becoming more frequent and intense due to climate change. Traditional building designs with thick walls, small windows, and interior courtyards provide natural cooling."
+        ],
+        'alternatives': [
+          "In India, traditional alternatives like steel or copper vessels instead of plastic, cloth bags (jholas) instead of plastic bags, and clay pots for water storage are sustainable and culturally rooted options.",
+          "Bamboo products are excellent eco-friendly alternatives in India. Bamboo grows abundantly across the country and is being used for everything from toothbrushes and straws to furniture and construction.",
+          "For sustainable fashion in India, look for brands using khadi, organic cotton, and natural dyes. Traditional textile arts like block printing and ikat use less water and energy than modern manufacturing."
+        ],
+        'default': [
+          "In India, the Ministry of Environment, Forest and Climate Change (MoEFCC) oversees environmental regulations and initiatives. Their website offers resources on various environmental programs and policies.",
+          "The Indian government's Swachh Bharat Mission focuses on waste management and cleanliness. You can participate through community clean-up drives and by practicing proper waste disposal.",
+          "Environmental NGOs like Centre for Science and Environment (CSE), TERI, and Greenpeace India offer resources and volunteer opportunities for those interested in environmental conservation.",
+          "India's biodiversity includes over 45,000 plant species and 91,000 animal species. Protected areas like national parks and wildlife sanctuaries cover about 5% of India's geographical area.",
+          "India's National Action Plan on Climate Change (NAPCC) has eight missions addressing different aspects of climate change mitigation and adaptation, including solar energy, water, and sustainable agriculture."
+        ]
+      };
       
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      // Analyze input to determine relevant category
+      const input = messages[messages.length-1].content.toLowerCase();
+      let category = 'default';
+      
+      if (input.includes('recycle') || input.includes('waste') || input.includes('plastic') || input.includes('garbage') || input.includes('trash') || input.includes('e-waste')) {
+        category = 'recycling';
+      } else if (input.includes('water') || input.includes('rain') || input.includes('river') || input.includes('conservation')) {
+        category = 'water';
+      } else if (input.includes('electricity') || input.includes('power') || input.includes('energy') || input.includes('solar') || input.includes('bill')) {
+        category = 'energy';
+      } else if (input.includes('farm') || input.includes('agriculture') || input.includes('organic') || input.includes('food') || input.includes('crop')) {
+        category = 'agriculture';
+      } else if (input.includes('pollution') || input.includes('air quality') || input.includes('smog') || input.includes('noise')) {
+        category = 'pollution';
+      } else if (input.includes('climate') || input.includes('global warming') || input.includes('temperature') || input.includes('weather')) {
+        category = 'climate';
+      } else if (input.includes('alternative') || input.includes('substitute') || input.includes('instead of') || input.includes('replace')) {
+        category = 'alternatives';
+      }
+      
+      // Select a relevant response from the appropriate category
+      const relevantResponses = indiaEcoResponses[category];
+      const response = relevantResponses[Math.floor(Math.random() * relevantResponses.length)];
       
       const newAssistantMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: randomResponse,
+        content: response,
         timestamp: new Date()
       };
       

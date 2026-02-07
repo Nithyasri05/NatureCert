@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,45 @@ const navLinks: NavLink[] = [
 ];
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [isAuth, setIsAuth] = useState(false);
+
+  async function checkAuth() {
+    try {
+      const resp = await fetch('/api/user', { credentials: 'include' });
+      setIsAuth(resp.ok);
+    } catch (e) {
+      setIsAuth(false);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) checkAuth();
+
+    // re-check on window focus
+    const onFocus = () => checkAuth();
+    window.addEventListener('focus', onFocus);
+
+    // re-check when other parts of the app dispatch auth changes
+    const onAuthChanged = () => checkAuth();
+    window.addEventListener('authChanged', onAuthChanged as EventListener);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('authChanged', onAuthChanged as EventListener);
+    };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } finally {
+      setIsAuth(false);
+      setLocation('/auth');
+    }
+  }
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -42,19 +80,29 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.href}
-                href={link.href}
-                className={`${
-                  location === link.href 
-                    ? 'text-primary font-medium' 
-                    : 'text-neutral-700 hover:text-primary font-medium'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {(() => {
+              const visible = navLinks.filter((l) => isAuth || ["/recycling-guide"].includes(l.href));
+              return visible.map((link) => (
+                <Link 
+                  key={link.href}
+                  href={link.href}
+                  className={`${
+                    location === link.href 
+                      ? 'text-primary font-medium' 
+                      : 'text-neutral-700 hover:text-primary font-medium'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ));
+            })()}
+            {isAuth ? (
+              <button onClick={async () => { await handleLogout(); window.dispatchEvent(new Event('authChanged')); }} className="text-neutral-700 hover:text-primary font-medium">
+                Logout
+              </button>
+            ) : (
+              <Link href="/auth" className="text-neutral-700 hover:text-primary font-medium">Sign In</Link>
+            )}
           </nav>
           
           {/* Mobile Menu */}
@@ -69,20 +117,36 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[80%] sm:w-[350px]">
                 <div className="flex flex-col gap-6 mt-8">
-                  {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <Link
-                        href={link.href}
-                        className={`${
-                          location === link.href
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary'
-                        } block px-3 py-2 rounded-md text-base font-medium`}
-                      >
-                        {link.name}
-                      </Link>
-                    </SheetClose>
-                  ))}
+                  {(() => {
+                    const visible = navLinks.filter((l) => isAuth || ["/recycling-guide"].includes(l.href));
+                    return visible.map((link) => (
+                      <SheetClose asChild key={link.href}>
+                        <Link
+                          href={link.href}
+                          className={`${
+                            location === link.href
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary'
+                          } block px-3 py-2 rounded-md text-base font-medium`}
+                        >
+                          {link.name}
+                        </Link>
+                      </SheetClose>
+                    ));
+                  })()}
+                  <div className="mt-6">
+                    {isAuth ? (
+                      <SheetClose asChild>
+                        <button onClick={handleLogout} className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:bg-neutral-50">
+                          Logout
+                        </button>
+                      </SheetClose>
+                    ) : (
+                      <SheetClose asChild>
+                        <Link href="/auth" className="block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:bg-neutral-50">Sign In / Sign Up</Link>
+                      </SheetClose>
+                    )}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

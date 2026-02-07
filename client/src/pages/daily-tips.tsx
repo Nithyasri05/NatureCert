@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,6 +50,8 @@ export default function DailyTips() {
   ]);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const { toast } = useToast();
+  const [featuredTip, setFeaturedTip] = useState<EcoTip | null>(null);
+  const [loadingTip, setLoadingTip] = useState(false);
   
   const tips: EcoTip[] = [
     {
@@ -183,6 +186,24 @@ export default function DailyTips() {
     window.open(shareUrl, '_blank');
     setShareDialogOpen(false);
   };
+
+  // Fetch the daily tip when the page mounts
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingTip(true);
+        const res = await fetch('/api/daily-tip');
+        if (res.ok) {
+          const data = await res.json();
+          if (data) setFeaturedTip({ id: data.id ?? 0, title: data.title, description: data.description, category: data.category, likes: 0, comments: 0, image: data.imageUrl ?? undefined });
+        }
+      } catch (e) {
+        console.error('Failed to load daily tip', e);
+      } finally {
+        setLoadingTip(false);
+      }
+    })();
+  }, []);
   
   return (
     <div>
@@ -203,7 +224,7 @@ export default function DailyTips() {
             <div>
               <h2 className="text-xl font-bold text-neutral-800 mb-2">Today's Featured Tip</h2>
               <p className="text-neutral-700">
-                Try a "Meatless Monday" to reduce your carbon footprint. Livestock production generates nearly 15% of global greenhouse gas emissions. Even going meatless one day a week can make a difference!
+                {loadingTip ? 'Loading today\'s tip...' : (featuredTip ? featuredTip.description : 'Try a small sustainable action today.')}
               </p>
             </div>
           </div>

@@ -41,6 +41,8 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -66,24 +68,28 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      // Here you would typically call your authentication API
-      console.log('Login data:', data);
-      
-      // Mock successful login
-      setTimeout(() => {
-        toast({
-          title: "Login successful",
-          description: "Welcome back to NatureCert!",
-          variant: "default",
-        });
-        
-        // Redirect to main site home page
-        setLocation('/home');
-      }, 1500);
-    } catch (error) {
+      const resp = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err?.error || 'Login failed');
+      }
+
+      toast({ title: 'Login successful', description: 'Welcome back!', variant: 'default' });
+      // notify other UI parts about auth change (header)
+      window.dispatchEvent(new Event('authChanged'));
+      setLocation('/home');
+    } catch (error: any) {
+      // clear entered credentials on failed login
+      loginForm.reset({ email: '', password: '' });
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Please try again.",
+        description: error?.message || 'Invalid email or password. Please try again.',
         variant: "destructive",
       });
     } finally {
@@ -95,29 +101,42 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      // Here you would typically call your registration API
-      console.log('Register data:', data);
-      
-      // Mock successful registration
-      setTimeout(() => {
-        toast({
-          title: "Registration successful",
-          description: "Your account has been created. Welcome to NatureCert!",
-          variant: "default",
-        });
-        
-        // Redirect to main site home page
-        setLocation('/home');
-      }, 1500);
-    } catch (error) {
+      const resp = await fetch('/api/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err?.error || 'Registration failed');
+      }
+
+      toast({ title: 'Registration successful', description: 'Your account has been created.', variant: 'default' });
+      window.dispatchEvent(new Event('authChanged'));
+      setLocation('/home');
+    } catch (error: any) {
       toast({
         title: "Registration failed",
-        description: "There was an error creating your account. Please try again.",
+        description: error?.message || 'There was an error creating your account. Please try again.',
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSendReset = async () => {
+    if (!forgotEmail || !forgotEmail.includes('@')) {
+      toast({ title: 'Invalid email', description: 'Please provide a valid email address', variant: 'destructive' });
+      return;
+    }
+
+    // Simulate sending reset link — in production this would call an API
+    toast({ title: 'Password reset', description: `If an account exists for ${forgotEmail}, a reset link has been sent.`, variant: 'default' });
+    setShowForgot(false);
+    setForgotEmail('');
   };
 
   return (
@@ -135,6 +154,22 @@ export default function AuthPage() {
           </div>
           
           <Tabs defaultValue="login" className="w-full">
+            {/* Forgot password modal */}
+            {showForgot && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-lg p-6 w-[90%] max-w-md">
+                  <h3 className="text-lg font-semibold mb-3">Reset your password</h3>
+                  <p className="text-sm text-neutral-600 mb-4">Enter your email and we'll send a reset link if an account exists.</p>
+                  <div className="mb-4">
+                    <Input value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="youremail@example.com" />
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <Button variant="ghost" onClick={() => setShowForgot(false)}>Cancel</Button>
+                    <Button onClick={handleSendReset}>Send reset link</Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Sign Up</TabsTrigger>
@@ -193,9 +228,9 @@ export default function AuthPage() {
                       <input type="checkbox" id="remember-me" className="h-4 w-4 text-primary" />
                       <label htmlFor="remember-me" className="text-sm text-neutral-600">Remember me</label>
                     </div>
-                    <a href="#" className="text-sm font-medium text-primary hover:text-primary-dark">
+                    <button type="button" onClick={() => setShowForgot(true)} className="text-sm font-medium text-primary hover:text-primary-dark">
                       Forgot password?
-                    </a>
+                    </button>
                   </div>
                   
                   <Button 
@@ -320,7 +355,11 @@ export default function AuthPage() {
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => setLocation('/home')}
+              onClick={() => {
+                // mark auth state change and navigate guest to recycling guide
+                window.dispatchEvent(new Event('authChanged'));
+                setLocation('/recycling-guide');
+              }}
             >
               Continue as Guest
             </Button>
