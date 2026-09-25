@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Leaf, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Leaf, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { 
   Form, 
   FormControl, 
@@ -43,6 +43,9 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -207,17 +210,26 @@ export default function AuthPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
+                        <div className="relative">
                             <Lock className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
-                            <Input 
-                              type="password" 
-                              className="pl-10" 
-                              placeholder="••••••••" 
-                              {...field} 
-                            />
-                          </div>
-                        </FormControl>
+                            <FormControl>
+                              <Input 
+                                type={showLoginPassword ? 'text' : 'password'} 
+                                className="pl-10 pr-10" 
+                                placeholder="••••••••" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <button
+                              type="button"
+                              onClick={() => setShowLoginPassword((visible) => !visible)}
+                              className="absolute right-3 top-2.5 text-neutral-400 hover:text-neutral-700"
+                              aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                              title={showLoginPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -297,17 +309,26 @@ export default function AuthPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
+                        <div className="relative">
                             <Lock className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
-                            <Input 
-                              type="password" 
-                              className="pl-10" 
-                              placeholder="••••••••" 
-                              {...field} 
-                            />
-                          </div>
-                        </FormControl>
+                            <FormControl>
+                              <Input 
+                                type={showRegisterPassword ? 'text' : 'password'} 
+                                className="pl-10 pr-10" 
+                                placeholder="••••••••" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <button
+                              type="button"
+                              onClick={() => setShowRegisterPassword((visible) => !visible)}
+                              className="absolute right-3 top-2.5 text-neutral-400 hover:text-neutral-700"
+                              aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                              title={showRegisterPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showRegisterPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -319,17 +340,26 @@ export default function AuthPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
+                        <div className="relative">
                             <Lock className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
-                            <Input 
-                              type="password" 
-                              className="pl-10" 
-                              placeholder="••••••••" 
-                              {...field} 
-                            />
-                          </div>
-                        </FormControl>
+                            <FormControl>
+                              <Input 
+                                type={showConfirmPassword ? 'text' : 'password'} 
+                                className="pl-10 pr-10" 
+                                placeholder="••••••••" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword((visible) => !visible)}
+                              className="absolute right-3 top-2.5 text-neutral-400 hover:text-neutral-700"
+                              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                              title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

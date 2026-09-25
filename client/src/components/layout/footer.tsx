@@ -3,7 +3,7 @@ import { Leaf } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="flex-none border-t border-green-950 bg-[#17352a] text-white">
+    <footer className="hidden flex-none border-t border-green-950 bg-[#17352a] text-white md:flex">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-4 py-6 sm:flex-row sm:items-center sm:px-6 lg:px-8">
         <Link href="/home" className="inline-flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-green-800">
