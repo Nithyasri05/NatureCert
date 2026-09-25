@@ -40,6 +40,21 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  const publicPages = new Set(["/", "/auth"]);
+  app.use((req, res, next) => {
+    const isBrowserPageRequest = req.method === "GET"
+      && req.accepts("html")
+      && !req.path.startsWith("/@")
+      && !req.path.startsWith("/src/")
+      && !req.path.startsWith("/assets/")
+      && !req.path.startsWith("/node_modules/")
+      && !req.path.includes(".");
+    if (isBrowserPageRequest && !publicPages.has(req.path) && !req.isAuthenticated()) {
+      return res.redirect("/auth");
+    }
+    next();
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

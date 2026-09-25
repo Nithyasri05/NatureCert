@@ -1,5 +1,5 @@
 import { useLocation } from 'wouter';
-import { ArrowRight, Leaf, Recycle, Sparkles } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Welcome() {
@@ -10,29 +10,31 @@ export default function Welcome() {
   };
 
   return (
-    <div className="soft-grid flex min-h-screen items-center bg-[#f8f7f1] px-4 py-8 sm:px-6">
-      <div className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_24px_80px_rgba(23,53,42,0.12)] md:grid-cols-[1.1fr_0.9fr]">
-        <div className="bg-[#17352a] p-8 text-white sm:p-12">
-          <div className="mb-16 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-200 text-[#17352a]"><Leaf className="h-5 w-5" /></span>
-            <span className="font-heading text-xl font-bold tracking-tight">NatureCert</span>
+    <div className="soft-grid relative flex min-h-[100dvh] items-start justify-center overflow-y-auto bg-[#17352a] sm:items-center">
+      <div className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[#f8f7f1]/95 px-4 py-8 text-center sm:px-10 sm:py-12">
+        <div className="absolute inset-x-0 top-0 h-2 bg-primary" />
+        <div className="absolute inset-x-0 bottom-0 h-2 bg-primary" />
+        <Leaf className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rotate-12 text-primary/5" aria-hidden="true" />
+        <div className="relative z-10 w-full max-w-lg">
+          <div className="mb-6 flex items-center justify-center">
+            <span className="mr-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-11 sm:w-11">
+              <Leaf className="h-6 w-6 sm:h-7 sm:w-7" />
+            </span>
+            <span className="font-heading text-2xl font-bold text-neutral-800 sm:text-3xl">NatureCert</span>
           </div>
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Small actions. Better systems.</p>
-          <h1 className="mb-5 text-4xl font-bold leading-tight md:text-5xl">A clearer way to live with less waste.</h1>
-          <p className="max-w-lg text-lg text-green-50/80">Explore practical guidance, discover better everyday swaps, and use live environmental information to make your next decision count.</p>
-          <div className="mt-10 flex flex-wrap gap-3 text-sm text-green-50/80">
-            <span className="inline-flex items-center gap-2"><Recycle className="h-4 w-4 text-amber-200" /> Recycling guidance</span>
-            <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-200" /> AI assistance</span>
-          </div>
-        </div>
-        <div className="flex flex-col justify-center p-8 sm:p-12">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">Start here</p>
-          <h2 className="mb-3 text-2xl font-bold text-neutral-900">Build a more informed routine.</h2>
-          <p className="mb-8 text-neutral-600">Create an account to save progress, follow challenges, and access the full NatureCert toolkit.</p>
-          <Button size="lg" className="w-full justify-between" onClick={goToLogin}>
-            Sign in or create an account <ArrowRight className="h-5 w-5" />
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary sm:text-xs sm:tracking-[0.2em]">Small actions. Better systems.</p>
+          <h1 className="mb-3 text-3xl font-bold text-neutral-800 sm:text-5xl">Welcome</h1>
+          <p className="mx-auto max-w-md text-base leading-relaxed text-neutral-600 sm:text-lg">Your practical guide to lower-waste habits, smarter everyday choices, and a more sustainable routine.</p>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-neutral-500">
+            Create an account to save progress, follow challenges, and access your NatureCert guidance.
+          </p>
+          <Button onClick={goToLogin} className="mt-9 h-12 w-full bg-primary text-sm font-semibold text-white shadow-md hover:bg-primary-dark sm:w-80">
+            <Leaf className="mr-2 h-4 w-4" />
+            Go Green
           </Button>
-          <p className="mt-5 text-xs leading-relaxed text-neutral-500">By continuing, you agree to our Terms of Service and Privacy Policy.</p>
+          <p className="mx-auto mt-6 max-w-sm text-xs leading-relaxed text-neutral-500">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+          </p>
         </div>
       </div>
     </div>

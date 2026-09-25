@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -8,7 +7,6 @@ interface Props {
 
 export default function ProtectedRoute({ component: Component }: Props) {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,17 +19,17 @@ export default function ProtectedRoute({ component: Component }: Props) {
         else {
           setIsAuthed(false);
           toast({ title: 'Sign in required', description: 'Please sign in to access this page', variant: 'destructive' });
-          setLocation('/auth');
+          window.location.replace('/auth');
         }
       } catch (e) {
         if (!mounted) return;
         setIsAuthed(false);
         toast({ title: 'Sign in required', description: 'Please sign in to access this page', variant: 'destructive' });
-        setLocation('/auth');
+        window.location.replace('/auth');
       }
     })();
     return () => { mounted = false; };
-  }, [setLocation, toast]);
+  }, [toast]);
 
   if (isAuthed === null) return null;
   if (!isAuthed) return null;
