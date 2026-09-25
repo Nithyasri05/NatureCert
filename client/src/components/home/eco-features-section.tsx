@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Leaf, Droplet, Newspaper, Recycle, Trophy, MessageCircle, BarChart } from 'lucide-react';
+import { Leaf, Droplet, Newspaper, Recycle, Trophy, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -65,14 +65,6 @@ export default function EcoFeaturesSection() {
       link: '/eco-challenges',
       color: 'bg-purple-100 text-purple-700'
     },
-    {
-      id: 'eco-chatbot',
-      title: 'Eco Chatbot',
-      description: 'Get answers to your environmental questions from our AI assistant.',
-      icon: <MessageCircle className="h-8 w-8" />,
-      link: '/eco-chatbot',
-      color: 'bg-gray-900 text-white'
-    }
   ];
 
   const navigateTo = (path: string) => {
@@ -80,7 +72,7 @@ export default function EcoFeaturesSection() {
   };
 
   return (
-    <section className="py-12 md:py-16 bg-neutral-50">
+    <section id="toolkit" className="py-12 md:py-16 bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold font-heading text-neutral-800 mb-4">Eco Features</h2>

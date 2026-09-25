@@ -28,6 +28,13 @@ function getYouTubeEmbed(url: string) {
 export default function ResourceCard({ resource }: ResourceCardProps) {
   const [showPlayer, setShowPlayer] = useState(false);
 
+  const fallbackImage = resource.type === 'Guide'
+    ? 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=900&q=80'
+    : resource.type === 'Webinar'
+      ? 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=900&q=80'
+      : 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80';
+  const imageUrl = resource.imageUrl || fallbackImage;
+
   const isWebinar = resource.type === 'Webinar';
   const youTubeEmbed = isWebinar ? getYouTubeEmbed(resource.link) : null;
 
@@ -42,9 +49,9 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
     <>
       <Card className="bg-white rounded-xl shadow-sm overflow-hidden card-hover-effect">
         <div className="h-48 relative">
-          {resource.imageUrl ? (
+          {imageUrl ? (
             <img
-              src={resource.imageUrl}
+              src={imageUrl}
               alt={resource.title}
               className="w-full h-full object-cover"
             />
@@ -86,7 +93,13 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-500">{resource.readTime}</span>
             {isWebinar ? (
-              <a href={resource.link} onClick={openPlayer} className="text-sm font-medium text-primary hover:text-primary-dark flex items-center">
+              <a
+                href={resource.link}
+                onClick={youTubeEmbed ? openPlayer : undefined}
+                target={youTubeEmbed ? undefined : '_blank'}
+                rel={youTubeEmbed ? undefined : 'noreferrer'}
+                className="text-sm font-medium text-primary hover:text-primary-dark flex items-center"
+              >
                 Watch now <ArrowRight className="ml-1 h-4 w-4" />
               </a>
             ) : (

@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { PageFrame, PageIntro } from '@/components/layout/page-frame';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Trophy, Calendar, Check, Clock, 
-  Users, Leaf, AlertTriangle, Award, 
+  Users, Leaf, AlertTriangle, 
   ChevronDown, ChevronUp
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface EcoChallenge {
   id: number;
@@ -18,180 +20,117 @@ interface EcoChallenge {
   duration: number; // days
   difficulty: 'Easy' | 'Medium' | 'Hard';
   impact: 'Low' | 'Medium' | 'High';
-  participants: number;
   steps: string[];
-  rewards: string[];
-  completed: boolean;
-  progress: number;
+  completed?: boolean;
+  progress?: number;
   category: string;
 }
 
+interface ChallengeParticipation {
+  id: number;
+  challengeId: number;
+  progress: number;
+  completed: boolean;
+  startDate: string;
+  completionDate?: string | null;
+}
+
 export default function EcoChallenges() {
-  const [activeChallenges, setActiveChallenges] = useState<number[]>([]);
   const [expandedChallenges, setExpandedChallenges] = useState<number[]>([]);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<number | null>(null);
+  const [participationByChallenge, setParticipationByChallenge] = useState<Record<number, ChallengeParticipation>>({});
+  const { toast } = useToast();
   
-  const challenges: EcoChallenge[] = [
-    {
-      id: 1,
-      title: "Zero Waste Week",
-      description: "Challenge yourself to produce zero landfill waste for an entire week by refusing, reducing, reusing, recycling, and composting.",
-      duration: 7,
-      difficulty: "Medium",
-      impact: "High",
-      participants: 1245,
-      steps: [
-        "Conduct a waste audit before starting",
-        "Create a zero waste kit (reusable bags, containers, utensils)",
-        "Plan meals to minimize packaging waste",
-        "Set up a compost system for food scraps",
-        "Find bulk shopping options in your area",
-        "Record daily progress and challenges"
-      ],
-      rewards: [
-        "Eco-hero badge",
-        "50 green points",
-        "Tree planted in your name"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Waste Reduction"
-    },
-    {
-      id: 2,
-      title: "Plant-Based Month",
-      description: "Adopt a plant-based diet for 30 days to reduce your carbon footprint and explore delicious plant-based cuisine.",
-      duration: 30,
-      difficulty: "Medium",
-      impact: "High",
-      participants: 842,
-      steps: [
-        "Research plant-based nutrition basics",
-        "Stock your pantry with plant-based staples",
-        "Plan a week of meals at a time",
-        "Try a new vegetable or plant protein each week",
-        "Join the challenge community for recipe sharing",
-        "Track environmental impact of food choices"
-      ],
-      rewards: [
-        "Plant power badge",
-        "100 green points",
-        "Digital cookbook of top plant-based recipes"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Food & Diet"
-    },
-    {
-      id: 3,
-      title: "Plastic-Free Challenge",
-      description: "Eliminate single-use plastics from your daily life for 21 days to reduce plastic pollution.",
-      duration: 21,
-      difficulty: "Hard",
-      impact: "High",
-      participants: 961,
-      steps: [
-        "Identify all single-use plastics you currently use",
-        "Find alternatives for your top 5 plastic items",
-        "Carry reusable shopping bags, water bottle, and coffee cup",
-        "Learn to make DIY toiletries and cleaning products",
-        "Share tips and alternatives with friends and family",
-        "Track how much plastic waste you've avoided"
-      ],
-      rewards: [
-        "Plastic fighter badge",
-        "75 green points",
-        "Donation to ocean cleanup organization"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Waste Reduction"
-    },
-    {
-      id: 4,
-      title: "Energy Saver",
-      description: "Reduce your home energy consumption by 20% over 14 days through simple habit changes and efficiency measures.",
-      duration: 14,
-      difficulty: "Easy",
-      impact: "Medium",
-      participants: 723,
-      steps: [
-        "Record your current energy usage as baseline",
-        "Unplug electronics when not in use",
-        "Switch to LED bulbs",
-        "Wash clothes in cold water",
-        "Adjust thermostat by 2 degrees",
-        "Air-dry clothes instead of using dryer",
-        "Compare before/after energy usage"
-      ],
-      rewards: [
-        "Energy genius badge",
-        "40 green points",
-        "Home energy efficiency guide"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Energy Conservation"
-    },
-    {
-      id: 5,
-      title: "Water Wise",
-      description: "Conserve water by adopting water-saving practices for 10 days.",
-      duration: 10,
-      difficulty: "Easy",
-      impact: "Medium",
-      participants: 589,
-      steps: [
-        "Track current water usage",
-        "Take shorter showers (5 minutes or less)",
-        "Install low-flow faucet aerators",
-        "Fix any leaky faucets",
-        "Collect and reuse water when possible",
-        "Only run full loads of laundry and dishes"
-      ],
-      rewards: [
-        "Water protector badge",
-        "30 green points",
-        "Water conservation handbook"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Water Conservation"
-    },
-    {
-      id: 6,
-      title: "No-Buy Month",
-      description: "Avoid buying any new non-essential items for 30 days to reduce consumption and focus on sustainable living.",
-      duration: 30,
-      difficulty: "Medium",
-      impact: "Medium",
-      participants: 412,
-      steps: [
-        "Define your 'essential' categories",
-        "Make an inventory of what you already own",
-        "Create a wishlist for future intentional purchases",
-        "Find creative ways to reuse and repurpose items",
-        "Borrow or share instead of buying new",
-        "Reflect on consumption habits weekly"
-      ],
-      rewards: [
-        "Mindful consumer badge",
-        "60 green points",
-        "Minimalist living guide"
-      ],
-      completed: false,
-      progress: 0,
-      category: "Sustainable Living"
+  const { data: challenges = [], isLoading, isError, refetch } = useQuery<EcoChallenge[]>({
+    queryKey: ['/api/challenges'],
+    queryFn: async () => {
+      const res = await fetch('/api/challenges');
+      if (!res.ok) throw new Error('Failed to fetch eco challenges');
+      return res.json();
     }
-  ];
+  });
+
+  const { data: participation = [] } = useQuery<ChallengeParticipation[]>({
+    queryKey: ['/api/me/challenges'],
+    queryFn: async () => {
+      const res = await fetch('/api/me/challenges', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch your challenge progress');
+      return res.json();
+    },
+    refetchInterval: 15 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  useEffect(() => {
+    setParticipationByChallenge(
+      Object.fromEntries(participation.map((item) => [item.challengeId, item])),
+    );
+  }, [participation]);
+
+  const activeChallenges = Object.keys(participationByChallenge).map(Number);
+  const completedChallenges = Object.values(participationByChallenge).filter((item) => item.completed).length;
   
-  const toggleActive = (challengeId: number) => {
-    setActiveChallenges(prev => {
-      if (prev.includes(challengeId)) {
-        return prev.filter(id => id !== challengeId);
-      } else {
-        return [...prev, challengeId];
-      }
-    });
+  const toggleActive = async (challengeId: number) => {
+    if (participationByChallenge[challengeId]) {
+      setExpandedChallenges(prev => prev.includes(challengeId) ? prev : [...prev, challengeId]);
+      return;
+    }
+
+    setJoiningChallengeId(challengeId);
+    try {
+      const response = await fetch('/api/challenges/join', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId }),
+      });
+      if (!response.ok) throw new Error('Could not start this challenge');
+      const joined: ChallengeParticipation = await response.json();
+      setParticipationByChallenge(prev => ({ ...prev, [challengeId]: joined }));
+      setExpandedChallenges(prev => prev.includes(challengeId) ? prev : [...prev, challengeId]);
+      toast({ title: 'Challenge started', description: 'Your progress is now saved to your profile.' });
+    } catch (error) {
+      toast({ title: 'Could not start challenge', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setJoiningChallengeId(null);
+    }
+  };
+
+  const completeStep = async (challenge: EcoChallenge, stepIndex: number) => {
+    const current = participationByChallenge[challenge.id];
+    if (!current) {
+      toast({ title: 'Start this challenge first', description: 'Your progress will be saved after you join.', variant: 'destructive' });
+      return;
+    }
+
+    const completedSteps = Math.round((current.progress / 100) * challenge.steps.length);
+    if (stepIndex > completedSteps) {
+      toast({ title: 'Complete steps in order', description: 'Finish the previous step before moving ahead.' });
+      return;
+    }
+    if (stepIndex < completedSteps) return;
+
+    const nextProgress = Math.round(((stepIndex + 1) / challenge.steps.length) * 100);
+    setParticipationByChallenge(prev => ({
+      ...prev,
+      [challenge.id]: { ...current, progress: nextProgress, completed: nextProgress === 100 },
+    }));
+
+    try {
+      const response = await fetch(`/api/challenges/${challenge.id}/progress`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress: nextProgress }),
+      });
+      if (!response.ok) throw new Error('Could not save progress');
+      const saved: ChallengeParticipation = await response.json();
+      setParticipationByChallenge(prev => ({ ...prev, [challenge.id]: saved }));
+      if (saved.completed) toast({ title: 'Challenge complete!', description: 'You completed every step of this challenge.' });
+    } catch (error) {
+      setParticipationByChallenge(prev => ({ ...prev, [challenge.id]: current }));
+      toast({ title: 'Progress was not saved', description: 'Please try the step again.', variant: 'destructive' });
+    }
   };
   
   const toggleExpanded = (challengeId: number) => {
@@ -223,15 +162,8 @@ export default function EcoChallenges() {
   };
   
   return (
-    <div>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">Eco Challenges</h1>
-          <p className="text-neutral-600 max-w-2xl mx-auto">
-            Take on environmental challenges, track your progress, and earn rewards for your positive impact on the planet.
-          </p>
-        </div>
+    <PageFrame>
+      <PageIntro eyebrow="Build a habit together" title="Eco Challenges" description="Choose a focused action, track the steps, and make progress you can actually repeat." />
         
         <div className="bg-green-50 rounded-xl overflow-hidden mb-12">
           <div className="p-6 md:p-8">
@@ -242,21 +174,21 @@ export default function EcoChallenges() {
               <div className="md:flex-1">
                 <h2 className="text-2xl font-bold mb-3">Challenge Yourself to Change</h2>
                 <p className="text-neutral-700 mb-4">
-                  Our eco-challenges help you develop sustainable habits while having fun and earning rewards. 
-                  Start with something small or dive into a major lifestyle change - every action counts!
+                  Our eco-challenges help you develop sustainable habits through small, repeatable actions. 
+                  Start with one change or work through several challenges at your own pace.
                 </p>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center">
                     <Users className="h-5 w-5 text-green-600 mr-2" />
-                    <span>4,800+ active participants</span>
+                    <span>{challenges.length} available challenges</span>
                   </div>
                   <div className="flex items-center">
                     <Leaf className="h-5 w-5 text-green-600 mr-2" />
-                    <span>30+ challenges to choose from</span>
+                    <span>{activeChallenges.length} challenges in progress</span>
                   </div>
                   <div className="flex items-center">
-                    <Award className="h-5 w-5 text-green-600 mr-2" />
-                    <span>Earn badges and rewards</span>
+                    <Check className="h-5 w-5 text-green-600 mr-2" />
+                    <span>{completedChallenges} challenges completed</span>
                   </div>
                 </div>
               </div>
@@ -266,19 +198,30 @@ export default function EcoChallenges() {
             <div className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-amber-600 mr-2" />
               <span className="text-neutral-800 font-medium">Active Challenges: {activeChallenges.length}</span>
+              <span className="text-neutral-600 text-sm ml-4">Completed: {completedChallenges}</span>
             </div>
-            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
+            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => document.getElementById('my-progress')?.scrollIntoView({ behavior: 'smooth' })}>
               My Progress Dashboard
             </Button>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 gap-6">
+        {isLoading ? (
+          <div className="flex justify-center p-12"><div className="w-8 h-8 rounded-full bg-green-500 animate-bounce"></div></div>
+          ) : isError ? (
+            <div className="text-center p-12">
+              <p className="text-neutral-600 mb-4">We couldn&apos;t load eco challenges.</p>
+              <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+            </div>
+          ) : challenges.length === 0 ? (
+            <p className="text-center text-neutral-600 p-12">No eco challenges are available yet.</p>
+        ) : (
+          <div id="my-progress" className="grid grid-cols-1 gap-6">
           {challenges.map((challenge) => (
             <Card 
               key={challenge.id} 
               className={`overflow-hidden transition-all duration-300 ${
-                activeChallenges.includes(challenge.id) ? 'border-green-300 bg-green-50/50' : ''
+                participationByChallenge[challenge.id] ? 'border-green-300 bg-green-50/50' : ''
               }`}
             >
               <CardContent className="p-0">
@@ -304,28 +247,28 @@ export default function EcoChallenges() {
                           <span>{challenge.duration} days</span>
                         </div>
                         <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          <span>{challenge.participants.toLocaleString()} participants</span>
+                          <Check className="h-4 w-4 mr-1" />
+                          <span>{challenge.steps.length} steps</span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex flex-col items-center md:items-end space-y-4">
-                      {activeChallenges.includes(challenge.id) ? (
+                      {participationByChallenge[challenge.id] ? (
                         <>
                           <div className="w-full max-w-[200px]">
                             <div className="flex justify-between text-sm mb-1">
                               <span>Progress</span>
-                              <span className="font-medium">{challenge.progress}%</span>
+                              <span className="font-medium">{participationByChallenge[challenge.id].progress}%</span>
                             </div>
-                            <Progress value={challenge.progress} className="h-2" />
+                            <Progress value={participationByChallenge[challenge.id].progress} className="h-2" />
                           </div>
                           <Button 
-                            variant="destructive" 
+                            variant="outline" 
                             onClick={() => toggleActive(challenge.id)}
                             size="sm"
                           >
-                            Quit Challenge
+                            View Progress
                           </Button>
                         </>
                       ) : (
@@ -333,8 +276,9 @@ export default function EcoChallenges() {
                           variant="default" 
                           className="w-full md:w-auto"
                           onClick={() => toggleActive(challenge.id)}
+                          disabled={joiningChallengeId === challenge.id}
                         >
-                          Start Challenge
+                          {joiningChallengeId === challenge.id ? 'Starting...' : 'Start Challenge'}
                         </Button>
                       )}
                     </div>
@@ -365,23 +309,26 @@ export default function EcoChallenges() {
                             <Check className="h-5 w-5 text-green-600 mr-2" />
                             Challenge Steps
                           </h4>
-                          <ol className="space-y-2 pl-8 list-decimal">
+                          <ol className="space-y-3">
                             {challenge.steps.map((step, idx) => (
-                              <li key={idx} className="text-neutral-700">{step}</li>
+                              <li key={idx}>
+                                <label className={`flex items-start gap-3 rounded-lg p-2 transition-colors ${
+                                  participationByChallenge[challenge.id] && idx < Math.round((participationByChallenge[challenge.id].progress / 100) * challenge.steps.length)
+                                    ? 'bg-green-50 text-green-800'
+                                    : 'text-neutral-700'
+                                }`}>
+                                  <Checkbox
+                                    checked={Boolean(participationByChallenge[challenge.id] && idx < Math.round((participationByChallenge[challenge.id].progress / 100) * challenge.steps.length))}
+                                    disabled={!participationByChallenge[challenge.id] || idx !== Math.round((participationByChallenge[challenge.id].progress / 100) * challenge.steps.length)}
+                                    onCheckedChange={() => completeStep(challenge, idx)}
+                                  />
+                                  <span>{step}</span>
+                                </label>
+                              </li>
                             ))}
                           </ol>
                         </div>
                         <div>
-                          <h4 className="font-bold mb-3 flex items-center">
-                            <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
-                            Rewards
-                          </h4>
-                          <ul className="space-y-2 pl-8 list-disc">
-                            {challenge.rewards.map((reward, idx) => (
-                              <li key={idx} className="text-neutral-700">{reward}</li>
-                            ))}
-                          </ul>
-                          
                           <div className="mt-6 p-4 bg-neutral-100 rounded-lg">
                             <h4 className="font-bold mb-2 flex items-center">
                               <Clock className="h-5 w-5 text-neutral-700 mr-2" />
@@ -404,12 +351,8 @@ export default function EcoChallenges() {
             </Card>
           ))}
         </div>
+        )}
         
-        <div className="mt-10 text-center">
-          <Button variant="outline">Load More Challenges</Button>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    </PageFrame>
   );
 }

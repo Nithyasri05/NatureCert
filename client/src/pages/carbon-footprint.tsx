@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { PageFrame, PageIntro } from '@/components/layout/page-frame';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -41,7 +40,7 @@ interface CategoryFootprint {
   consumption: number;
 }
 
-// India-specific carbon emission factors (approximate values for demonstration)
+// Approximate India-focused factors for educational estimates, not audited reporting.
 const EMISSION_FACTORS = {
   electricity: 0.82, // kg CO2 per kWh (India's grid mix)
   lpg: 2.98, // kg CO2 per kg of LPG
@@ -64,6 +63,7 @@ export default function CarbonFootprint() {
   const [activeTab, setActiveTab] = useState('home');
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [footprint, setFootprint] = useState<CategoryFootprint>({
     home: 0,
     transportation: 0,
@@ -121,6 +121,10 @@ export default function CarbonFootprint() {
   useEffect(() => {
     calculateConsumptionFootprint();
   }, [clothingItems, electronicsItems, recyclingRate, secondHandPercentage]);
+
+  useEffect(() => {
+    setIsSaved(Boolean(localStorage.getItem('naturecert-carbon-footprint')));
+  }, []);
   
   // Calculate each category's footprint
   const calculateHomeFootprint = () => {
@@ -214,8 +218,8 @@ export default function CarbonFootprint() {
   };
   
   const calculateConsumptionFootprint = () => {
-    // Clothing emissions (reduced by second-hand percentage)
-    const clothingEmissions = clothingItems * EMISSION_FACTORS.clothing * (1 - (secondHandPercentage / 100));
+    // Clothing is entered annually, so convert its impact to a monthly estimate.
+    const clothingEmissions = (clothingItems / 12) * EMISSION_FACTORS.clothing * (1 - (secondHandPercentage / 100));
     
     // Electronics emissions (monthly equivalent)
     const electronicsEmissions = (electronicsItems / 12) * EMISSION_FACTORS.electronics;
@@ -279,7 +283,7 @@ export default function CarbonFootprint() {
       
       toast({
         title: "Carbon Footprint Calculated",
-        description: "Your estimated carbon footprint is " + totalFootprint + " kg CO2e per month.",
+        description: "Your estimated footprint is " + totalFootprint + " kg CO2e per person per month.",
       });
     }, 1500);
   };
@@ -368,13 +372,51 @@ export default function CarbonFootprint() {
   
   // Share results
   const shareResults = () => {
-    const text = `My monthly carbon footprint is ${totalFootprint} kg CO2e. Calculate yours at NatureCert!`;
+    const text = `My estimated monthly footprint is ${totalFootprint} kg CO2e per person. Calculate yours at NatureCert!`;
     
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied to clipboard",
         description: "Share your results with friends and family!",
       });
+    });
+  };
+
+  const saveResults = () => {
+    const savedResult = {
+      savedAt: new Date().toISOString(),
+      totalFootprint,
+      footprint,
+      rating: getFootprintRating().label,
+      inputs: {
+        electricityUsage,
+        lpgUsage,
+        householdSize,
+        renewableEnergy,
+        carType,
+        carDistance,
+        carEfficiency,
+        flights,
+        flightDistance,
+        publicTransportDistance,
+        publicTransportType,
+        dietType,
+        meatConsumption,
+        dairyConsumption,
+        localFoodPercentage,
+        foodWaste,
+        clothingItems,
+        electronicsItems,
+        recyclingRate,
+        secondHandPercentage,
+      },
+    };
+
+    localStorage.setItem('naturecert-carbon-footprint', JSON.stringify(savedResult));
+    setIsSaved(true);
+    toast({
+      title: 'Results Saved',
+      description: 'Your current carbon footprint results are saved on this device.',
     });
   };
   
@@ -390,17 +432,8 @@ export default function CarbonFootprint() {
   };
   
   return (
-    <div>
-      <Header />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-3">Carbon Footprint Calculator</h1>
-          <p className="text-neutral-600 max-w-3xl mx-auto">
-            Estimate your personal carbon footprint and discover ways to reduce your environmental impact.
-            This calculator is tailored for Indian households and lifestyles.
-          </p>
-        </div>
-        
+    <PageFrame contentClassName="max-w-5xl">
+      <PageIntro eyebrow="Understand your baseline" title="Carbon Footprint" description="Estimate the impact of everyday energy, travel, food, and purchasing choices, then focus on the changes you can sustain." />
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-neutral-600 mb-2">
@@ -434,12 +467,12 @@ export default function CarbonFootprint() {
         
         {/* Calculator tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12">
-          <TabsList className="mb-8 grid grid-cols-5 w-full">
-            <TabsTrigger value="home">Home</TabsTrigger>
-            <TabsTrigger value="transportation">Transportation</TabsTrigger>
-            <TabsTrigger value="food">Food</TabsTrigger>
-            <TabsTrigger value="consumption">Consumption</TabsTrigger>
-            <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsList className="mb-8 flex w-full gap-1 overflow-x-auto p-1">
+            <TabsTrigger className="min-w-max" value="home">Home</TabsTrigger>
+            <TabsTrigger className="min-w-max" value="transportation">Transportation</TabsTrigger>
+            <TabsTrigger className="min-w-max" value="food">Food</TabsTrigger>
+            <TabsTrigger className="min-w-max" value="consumption">Consumption</TabsTrigger>
+            <TabsTrigger className="min-w-max" value="results">Results</TabsTrigger>
           </TabsList>
           
           {/* Home energy tab */}
@@ -906,14 +939,14 @@ export default function CarbonFootprint() {
                       <h3 className="text-2xl font-bold mb-1">
                         {totalFootprint} kg CO₂e
                       </h3>
-                      <p className="text-neutral-600 mb-3">Estimated monthly carbon emissions</p>
+                      <p className="text-neutral-600 mb-3">Estimated monthly emissions per person</p>
                       <div className="inline-block">
                         <Badge className={`${getFootprintRating().color} text-white px-4 py-1`}>
                           {getFootprintRating().label} Footprint
                         </Badge>
                       </div>
                       <p className="text-sm text-neutral-500 mt-4">
-                        The average Indian carbon footprint is approximately 1000 kg CO₂e per month per person.
+                        Use this estimate to compare your choices over time. Results vary with local energy factors, travel distances, and product data.
                       </p>
                     </div>
                     
@@ -1015,14 +1048,9 @@ export default function CarbonFootprint() {
                         </Button>
                       </div>
                       
-                      <Button onClick={() => {
-                        toast({
-                          title: "Results Saved",
-                          description: "Your carbon footprint results have been saved.",
-                        });
-                      }} className="flex items-center">
+                      <Button onClick={saveResults} className="flex items-center">
                         <Save className="h-4 w-4 mr-2" />
-                        Save Results
+                        {isSaved ? 'Update Saved Results' : 'Save Results'}
                       </Button>
                     </div>
                   </div>
@@ -1031,8 +1059,6 @@ export default function CarbonFootprint() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-      <Footer />
-    </div>
+    </PageFrame>
   );
 }

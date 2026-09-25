@@ -18,6 +18,8 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
+import Parser from "rss-parser";
 
 // @ts-ignore - connectPg has correct types but TypeScript is having issues
 const PostgresSessionStore = connectPg(session);
@@ -39,6 +41,7 @@ export interface IStorage {
   getResources(): Promise<Resource[]>;
   getResource(id: number): Promise<Resource | undefined>;
   getResourcesByType(type: string): Promise<Resource[]>;
+  getLiveVideoResources(): Promise<Resource[]>;
   createResource(resource: InsertResource): Promise<Resource>;
   
   // Contact submissions
@@ -74,6 +77,7 @@ export interface IStorage {
   getGreenNewsArticles(): Promise<GreenNewsArticle[]>;
   getGreenNewsArticle(id: number): Promise<GreenNewsArticle | undefined>;
   getGreenNewsArticlesByCategory(category: string): Promise<GreenNewsArticle[]>;
+  getLiveGreenNews(category?: string): Promise<GreenNewsArticle[]>;
   createGreenNewsArticle(article: InsertGreenNewsArticle): Promise<GreenNewsArticle>;
   
   // Recycling Guide
@@ -91,6 +95,11 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: any; // Using any for session store to avoid TypeScript issues
+  private dailyTipGenerations = new Map<string, Promise<EcoTip>>();
+  private liveNewsCache: { fetchedAt: number; articles: GreenNewsArticle[] } | null = null;
+  private liveNewsRequest: Promise<GreenNewsArticle[]> | null = null;
+  private liveVideoCache: { fetchedAt: number; resources: Resource[] } | null = null;
+  private liveVideoRequest: Promise<Resource[]> | null = null;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -117,38 +126,87 @@ export class DatabaseStorage implements IStorage {
     return found;
   }
 
-  // Generate a daily tip (OpenAI if available, otherwise rotate from built-in list) and store it
-  async generateAndStoreDailyTip(dateStr?: string) {
+  async ensureDailyTip(dateStr?: string, refresh = false): Promise<EcoTip> {
+    const target = dateStr ?? new Date().toISOString().split("T")[0];
+    const existing = await this.getDailyTip(target);
+    if (existing && !refresh) return existing;
+
+    const inFlight = this.dailyTipGenerations.get(target);
+    if (inFlight) return inFlight;
+
+    const generation = this.generateAndStoreDailyTip(target, existing).finally(() => {
+      this.dailyTipGenerations.delete(target);
+    });
+    this.dailyTipGenerations.set(target, generation);
+    return generation;
+  }
+
+  // Generate a daily tip (Gemini, then OpenAI, then the local fallback) and store it
+  async generateAndStoreDailyTip(dateStr?: string, existing?: EcoTip) {
     const target = dateStr ?? new Date().toISOString().split("T")[0];
 
-    const openaiKey = process.env.OPENAI_API_KEY;
     let title = "";
     let description = "";
+    const prompt = `Generate a fresh, practical eco-friendly daily tip for ${target}. Avoid repeating common generic tips when possible. Return only JSON with keys "title" and "description". Keep the title under eight words and the description under 200 characters.`;
 
-    if (openaiKey) {
+    const parseTipResponse = (raw: string) => {
+      const cleaned = raw.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+      try {
+        const parsed = JSON.parse(cleaned);
+        if (typeof parsed.title === "string" && typeof parsed.description === "string") {
+          return { title: parsed.title, description: parsed.description };
+        }
+      } catch (e) {
+        return undefined;
+      }
+      return undefined;
+    };
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+      const models = [process.env.GEMINI_MODEL || "gemini-3.8-flash", "gemini-flash-lite-latest"];
+      const client = new GoogleGenAI({ apiKey: geminiKey });
+      for (const model of models) {
+        try {
+          const response = await client.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              temperature: 0.6,
+              maxOutputTokens: 200,
+            },
+          });
+          const parsed = parseTipResponse(response.text ?? "");
+          if (parsed) {
+            title = parsed.title;
+            description = parsed.description;
+            break;
+          }
+        } catch (e) {
+          console.error(`Gemini generation failed for ${model}, trying next provider:`, e);
+        }
+      }
+    }
+
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!title && openaiKey) {
       try {
         const client = new OpenAI({ apiKey: openaiKey });
-        const prompt = `Generate a concise eco-friendly daily tip for general audiences. Return only JSON with keys \"title\" and \"description\". Keep title under  eight words and description under 200 characters.`;
         const resp = await client.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
           temperature: 0.6,
           max_tokens: 200
         });
 
         const raw = String(resp.choices?.[0]?.message?.content ?? "");
-        try {
-          const parsed = JSON.parse(raw);
-          title = parsed.title ?? "Daily Eco Tip";
-          description = parsed.description ?? "Try a small sustainable action today.";
-        } catch (e) {
-          // fallback to text parsing
-          const lines = raw.split('\n').filter(Boolean);
-          title = lines[0] ?? "Daily Eco Tip";
-          description = lines.slice(1).join(' ') || "Try a small sustainable action today.";
+        const parsed = parseTipResponse(raw);
+        if (parsed) {
+          title = parsed.title;
+          description = parsed.description;
         }
       } catch (e) {
-        console.error("OpenAI generation failed, falling back:", e);
+        console.error("OpenAI generation failed, using local fallback:", e);
       }
     }
 
@@ -167,6 +225,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     try {
+      if (existing) {
+        const [updated] = await db.update(ecoTips)
+          .set({ title, description, category: "daily-tip", imageUrl: "" } as any)
+          .where(eq(ecoTips.id, existing.id))
+          .returning();
+        return updated;
+      }
       const [inserted] = await db.insert(ecoTips).values({ title, description, category: "daily-tip", imageUrl: "" } as any).returning();
       return inserted;
     } catch (e) {
@@ -234,6 +299,51 @@ export class DatabaseStorage implements IStorage {
   
   async getResourcesByType(type: string): Promise<Resource[]> {
     return await db.select().from(resources).where(eq(resources.type, type));
+  }
+
+  async getLiveVideoResources(): Promise<Resource[]> {
+    const cacheAge = 30 * 60 * 1000;
+    if (this.liveVideoCache && Date.now() - this.liveVideoCache.fetchedAt < cacheAge) {
+      return this.liveVideoCache.resources;
+    }
+
+    if (!this.liveVideoRequest) {
+      this.liveVideoRequest = this.fetchLiveVideoResources().finally(() => {
+        this.liveVideoRequest = null;
+      });
+    }
+    const liveResources = await this.liveVideoRequest;
+    if (liveResources.length > 0) return liveResources;
+    return (await this.getResources()).filter((resource) => resource.type === "Webinar").slice(0, 3);
+  }
+
+  private async fetchLiveVideoResources(): Promise<Resource[]> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch("https://www.ted.com/feeds/talks.rss", { signal: controller.signal });
+      if (!response.ok) throw new Error(`Video feed returned ${response.status}`);
+      const feed = await new Parser().parseString(await response.text());
+      const keywords = /climate|sustainab|environment|carbon|energy|waste|ocean|biodiversity|nature|food system|planet|green/i;
+      const matchingItems = feed.items.filter((item) => keywords.test(`${item.title || ""} ${item.contentSnippet || ""}`));
+      const resourcesFromFeed = matchingItems.slice(0, 6).map((item, index) => ({
+        id: -(index + 1),
+        title: item.title?.trim() || "Sustainability talk",
+        type: "Webinar",
+        description: (item.contentSnippet || "A practical sustainability talk from TED.").replace(/\s+/g, " ").trim().slice(0, 300),
+        imageUrl: "",
+        readTime: "Video",
+        link: item.link || "https://www.ted.com/topics/sustainability",
+        createdAt: new Date(item.isoDate || item.pubDate || Date.now()),
+      } satisfies Resource));
+      if (resourcesFromFeed.length > 0) this.liveVideoCache = { fetchedAt: Date.now(), resources: resourcesFromFeed };
+      return resourcesFromFeed;
+    } catch (error) {
+      console.error("Live video feed failed:", error);
+      return [];
+    } finally {
+      clearTimeout(timeout);
+    }
   }
   
   async createResource(insertResource: InsertResource): Promise<Resource> {
@@ -429,6 +539,83 @@ export class DatabaseStorage implements IStorage {
         )
       );
   }
+
+  async getLiveGreenNews(category?: string): Promise<GreenNewsArticle[]> {
+    const cacheAge = 10 * 60 * 1000;
+    let articles: GreenNewsArticle[];
+
+    if (this.liveNewsCache && Date.now() - this.liveNewsCache.fetchedAt < cacheAge) {
+      articles = this.liveNewsCache.articles;
+    } else {
+      if (!this.liveNewsRequest) {
+        this.liveNewsRequest = this.fetchLiveGreenNews().finally(() => {
+          this.liveNewsRequest = null;
+        });
+      }
+      articles = await this.liveNewsRequest;
+    }
+
+    if (!category) return articles;
+    const normalizedCategory = category.toLowerCase();
+    return articles.filter((article) => article.categories.some((item) => item.toLowerCase().includes(normalizedCategory)));
+  }
+
+  private async fetchLiveGreenNews(): Promise<GreenNewsArticle[]> {
+    const feeds = [
+      "https://www.theguardian.com/environment/rss",
+      "https://news.mongabay.com/feed/",
+      "https://insideclimatenews.org/feed/",
+    ];
+    const parser = new Parser();
+    const results = await Promise.allSettled(feeds.map(async (url) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Feed returned ${response.status}`);
+        return parser.parseString(await response.text());
+      } finally {
+        clearTimeout(timeout);
+      }
+    }));
+
+    const articles: GreenNewsArticle[] = [];
+    for (const result of results) {
+      if (result.status !== "fulfilled") {
+        console.error("Live news feed failed:", result.reason);
+        continue;
+      }
+      const feed = result.value;
+      for (const item of feed.items.slice(0, 8)) {
+        if (!item.title || !item.link) continue;
+        const published = item.isoDate || item.pubDate || new Date().toISOString();
+        const publishedDate = new Date(published);
+        const categories = (item.categories as unknown[] | undefined)
+          ?.map((category) => typeof category === "string" ? category : String((category as { _: string })?._ || ""))
+          .filter(Boolean)
+          .slice(0, 3) || ["Sustainability"];
+        articles.push({
+          id: 0,
+          title: item.title.trim(),
+          summary: (item.contentSnippet || item.content || "Read the latest environmental report from the source.").replace(/\s+/g, " ").trim().slice(0, 500),
+          date: Number.isNaN(publishedDate.getTime()) ? new Date().toLocaleDateString() : publishedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+          readTime: "4 min",
+          categories,
+          source: feed.title || "Environmental News",
+          imageUrl: item.enclosure?.url || "",
+          createdAt: publishedDate,
+          link: item.link,
+        } as GreenNewsArticle & { link: string });
+      }
+    }
+
+    const uniqueArticles = Array.from(new Map(articles.map((article) => [article.title, article])).values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 18)
+      .map((article, index) => ({ ...article, id: -(index + 1) }));
+    if (uniqueArticles.length > 0) this.liveNewsCache = { fetchedAt: Date.now(), articles: uniqueArticles };
+    return uniqueArticles;
+  }
   
   async createGreenNewsArticle(insertArticle: InsertGreenNewsArticle): Promise<GreenNewsArticle> {
     const [article] = await db.insert(greenNewsArticles).values(insertArticle as any).returning();
@@ -472,9 +659,236 @@ export class DatabaseStorage implements IStorage {
   private async initSampleDataIfNeeded() {
     // Check if we already have certifications
     const existingCertifications = await db.select().from(certifications);
+    const existingAlternatives = await db.select().from(ecoAlternatives);
+    const existingChallenges = await db.select().from(ecoChallenges);
+    const existingTips = await db.select().from(ecoTips);
+    const existingRecyclingCategories = await db.select().from(recyclingCategories);
     
     if (existingCertifications.length === 0) {
       await this.initSampleData();
+    } else if (existingAlternatives.length === 0) {
+      await this.initSampleAlternatives();
+    }
+
+    if (existingCertifications.length > 0 && existingChallenges.length === 0) {
+      await this.initSampleChallenges();
+    }
+
+    if (existingTips.length === 0) {
+      await this.initSampleTips();
+    }
+
+    if (existingRecyclingCategories.length === 0) {
+      await this.initSampleRecyclingGuide();
+    }
+  }
+
+  private async initSampleTips() {
+    const sampleTips: InsertEcoTip[] = [
+      {
+        title: "Make Your Next Meal Plant-Forward",
+        description: "Replace one meat-based meal with beans, lentils, or seasonal vegetables. It is a simple way to lower food emissions without changing everything at once.",
+        category: "Food",
+        imageUrl: "",
+      },
+      {
+        title: "Give Devices a Full Shutdown",
+        description: "Turn off power strips and unplug chargers when they are not needed. Small standby loads add up across a home.",
+        category: "Energy",
+        imageUrl: "",
+      },
+      {
+        title: "Keep Recyclables Clean and Dry",
+        description: "Empty and rinse containers, then let them dry before recycling. Food and liquid residue can contaminate otherwise useful materials.",
+        category: "Waste",
+        imageUrl: "",
+      },
+      {
+        title: "Create a Pollinator Corner",
+        description: "Grow a few native flowering plants without pesticides. Even a balcony planter can provide food and shelter for local insects.",
+        category: "Biodiversity",
+        imageUrl: "",
+      },
+    ];
+
+    await db.insert(ecoTips).values(sampleTips as any);
+  }
+
+  private async initSampleRecyclingGuide() {
+    const categories: Array<InsertRecyclingCategory & { key: string }> = [
+      { key: "plastic", name: "Plastics", icon: "shopping-bag" },
+      { key: "paper", name: "Paper & Cardboard", icon: "book" },
+      { key: "glass", name: "Glass", icon: "droplet" },
+      { key: "metal", name: "Metal", icon: "coffee" },
+      { key: "special", name: "Special Items", icon: "gift" },
+    ];
+    const insertedCategories: Record<string, RecyclingCategory> = {};
+
+    for (const category of categories) {
+      const [inserted] = await db.insert(recyclingCategories).values({
+        name: category.name,
+        icon: category.icon,
+      }).returning();
+      insertedCategories[category.key] = inserted;
+    }
+
+    const sampleItems: Array<Omit<InsertRecyclingItem, "categoryId"> & { category: string }> = [
+      {
+        category: "plastic",
+        title: "PET bottles (Type 1)",
+        description: "Common drink and food containers made from polyethylene terephthalate.",
+        howTo: ["Empty and rinse the bottle", "Keep it dry", "Check whether caps are accepted separately"],
+        commonMistakes: ["Putting liquid-filled bottles in the bin", "Including plastic bags with rigid containers"],
+        tips: ["Look for the number 1 recycling symbol", "Use a local drop-off when curbside rules do not accept it"],
+        symbol: "1",
+      },
+      {
+        category: "paper",
+        title: "Cardboard boxes",
+        description: "Corrugated packaging from deliveries and household goods.",
+        howTo: ["Flatten boxes", "Remove plastic film and packing foam", "Keep the cardboard clean and dry"],
+        commonMistakes: ["Recycling greasy or wet cardboard", "Leaving large boxes unflattened"],
+        tips: ["Reuse sturdy boxes before recycling", "Confirm local rules for shredded paper"],
+      },
+      {
+        category: "glass",
+        title: "Glass bottles and jars",
+        description: "Food and beverage containers made from container glass.",
+        howTo: ["Empty and rinse containers", "Keep labels on unless your provider says otherwise", "Separate lids if required"],
+        commonMistakes: ["Including mirrors, ceramics, or ovenware", "Putting broken glass in curbside bins"],
+        tips: ["Glass can be recycled repeatedly", "Use a dedicated glass drop-off when offered"],
+      },
+      {
+        category: "metal",
+        title: "Aluminum and steel cans",
+        description: "Food and beverage cans that can be recovered into new metal products.",
+        howTo: ["Empty and rinse cans", "Keep labels attached", "Follow local guidance on flattening"],
+        commonMistakes: ["Recycling cans with food residue", "Putting aerosol cans in regular recycling without checking"],
+        tips: ["Aluminum is valuable and widely recyclable", "Never place sharp metal loose in a recycling bin"],
+      },
+      {
+        category: "special",
+        title: "Batteries and electronics",
+        description: "Devices and batteries need dedicated collection because they can contain hazardous materials.",
+        howTo: ["Protect lithium battery terminals with tape", "Delete personal data from devices", "Use an approved e-waste or battery drop-off"],
+        commonMistakes: ["Putting batteries in trash or curbside recycling", "Dismantling devices without proper equipment"],
+        tips: ["Retailers may offer take-back programs", "Keep damaged or swollen batteries isolated and seek specialist advice"],
+      },
+    ];
+
+    await db.insert(recyclingItems).values(sampleItems.map(({ category, ...item }) => ({
+      ...item,
+      categoryId: insertedCategories[category].id,
+    })) as any);
+  }
+
+  private async initSampleAlternatives() {
+    const sampleAlternatives: InsertEcoAlternative[] = [
+      {
+        name: "Reusable Stainless Steel Bottle",
+        description: "A durable alternative to single-use plastic water bottles.",
+        category: "Daily Essentials",
+        rating: 5,
+        benefits: ["Reduces plastic waste", "Long-lasting", "Easy to clean"],
+        imageUrl: ""
+      },
+      {
+        name: "Bamboo Toothbrush",
+        description: "A compostable-handle toothbrush for a lower-waste bathroom routine.",
+        category: "Personal Care",
+        rating: 4,
+        benefits: ["Plastic-free handle", "Renewable material", "Affordable swap"],
+        imageUrl: "https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        name: "Cloth Produce Bags",
+        description: "Washable bags that replace disposable produce and bulk-food bags.",
+        category: "Shopping",
+        rating: 4,
+        benefits: ["Reusable for years", "Machine washable", "Reduces packaging waste"],
+        imageUrl: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        name: "LED Light Bulbs",
+        description: "Energy-efficient bulbs that use less electricity and last longer.",
+        category: "Home Energy",
+        rating: 5,
+        benefits: ["Lower energy use", "Long lifespan", "Less frequent replacement"],
+        imageUrl: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        name: "Plant-Based Dish Soap",
+        description: "A biodegradable cleaning option made with plant-derived ingredients.",
+        category: "Home Care",
+        rating: 4,
+        benefits: ["Biodegradable formula", "Gentler ingredients", "Less aquatic pollution"],
+        imageUrl: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        name: "Reusable Beeswax Wraps",
+        description: "Washable food wraps that replace disposable plastic wrap.",
+        category: "Kitchen",
+        rating: 4,
+        benefits: ["Reusable", "Plastic-free storage", "Keeps food fresh"],
+        imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80"
+      }
+    ];
+
+    for (const alternative of sampleAlternatives) {
+      await db.insert(ecoAlternatives).values(alternative as any);
+    }
+  }
+
+  private async initSampleChallenges() {
+    const sampleChallenges: InsertEcoChallenge[] = [
+      {
+        title: "Plastic-Free Week",
+        description: "Replace everyday single-use plastic items with reusable alternatives for seven days.",
+        category: "Waste Reduction",
+        duration: 7,
+        difficulty: "Easy",
+        impact: "Medium",
+        imageUrl: "",
+        steps: ["Identify three single-use items", "Choose reusable replacements", "Track your progress each day"],
+        rewards: ["Waste Warrior badge", "Reduced plastic consumption"]
+      },
+      {
+        title: "Save Energy at Home",
+        description: "Build simple energy-saving habits and reduce unnecessary electricity use.",
+        category: "Energy",
+        duration: 14,
+        difficulty: "Medium",
+        impact: "High",
+        imageUrl: "",
+        steps: ["Switch off unused lights", "Unplug idle electronics", "Use natural light when possible"],
+        rewards: ["Energy Saver badge", "Lower household energy use"]
+      },
+      {
+        title: "Grow Something Native",
+        description: "Plant and care for a native species that supports local biodiversity.",
+        category: "Biodiversity",
+        duration: 30,
+        difficulty: "Medium",
+        impact: "High",
+        imageUrl: "",
+        steps: ["Choose a native plant", "Prepare a suitable growing space", "Water and observe it regularly"],
+        rewards: ["Pollinator Friend badge", "Support for local wildlife"]
+      },
+      {
+        title: "Low-Carbon Commute",
+        description: "Choose walking, cycling, public transit, or carpooling for your regular journeys.",
+        category: "Transport",
+        duration: 14,
+        difficulty: "Hard",
+        impact: "High",
+        imageUrl: "",
+        steps: ["Plan a lower-carbon route", "Complete three car-free trips", "Record the distance saved"],
+        rewards: ["Clean Commute badge", "Fewer transport emissions"]
+      }
+    ];
+
+    for (const challenge of sampleChallenges) {
+      await db.insert(ecoChallenges).values(challenge as any);
     }
   }
 
@@ -543,6 +957,9 @@ export class DatabaseStorage implements IStorage {
       for (const cert of sampleCertifications) {
         await db.insert(certifications).values(cert);
       }
+
+      await this.initSampleAlternatives();
+      await this.initSampleChallenges();
       
       // Sample resources
       const sampleResources: InsertResource[] = [

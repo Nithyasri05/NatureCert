@@ -1,5 +1,5 @@
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { PageFrame, PageIntro } from '@/components/layout/page-frame';
+import { useState } from 'react';
 import { 
   Accordion, 
   AccordionContent, 
@@ -9,9 +9,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
-  Recycle, Trash, Droplet, ShoppingBag, 
-  Coffee, Utensils, Book, Gift, HelpCircle 
+  Recycle, Droplet, ShoppingBag,
+  Coffee, Book, Gift, Search
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
 
 interface RecyclingItem {
   id: string;
@@ -30,8 +32,38 @@ interface RecyclingCategory {
   items: RecyclingItem[];
 }
 
+interface RecyclingApiItem extends Omit<RecyclingItem, 'id'> {
+  id: number;
+  categoryId: number;
+}
+
+interface RecyclingApiCategory {
+  id: number;
+  name: string;
+  icon: string;
+  items: RecyclingApiItem[];
+}
+
+const categoryIcons: Record<string, React.ReactNode> = {
+  'shopping-bag': <ShoppingBag className="h-5 w-5" />,
+  book: <Book className="h-5 w-5" />,
+  droplet: <Droplet className="h-5 w-5" />,
+  coffee: <Coffee className="h-5 w-5" />,
+  gift: <Gift className="h-5 w-5" />,
+};
+
 export default function RecyclingGuide() {
-  const recyclingCategories: RecyclingCategory[] = [
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: apiCategories } = useQuery<RecyclingApiCategory[]>({
+    queryKey: ['/api/recycling'],
+    queryFn: async () => {
+      const response = await fetch('/api/recycling');
+      if (!response.ok) throw new Error('Failed to fetch recycling guide');
+      return response.json();
+    },
+  });
+
+  const fallbackRecyclingCategories: RecyclingCategory[] = [
     {
       id: 'plastic',
       name: 'Plastics',
@@ -255,49 +287,46 @@ export default function RecyclingGuide() {
       ]
     }
   ];
+
+  const recyclingCategories: RecyclingCategory[] = apiCategories && apiCategories.length > 0 ? apiCategories.map((category) => ({
+    id: String(category.id),
+    name: category.name,
+    icon: categoryIcons[category.icon] ?? <Recycle className="h-5 w-5" />,
+    items: category.items.map((item) => ({
+      ...item,
+      id: String(item.id),
+    })),
+  })) : fallbackRecyclingCategories;
   
   return (
-    <div>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">Recycling Guide</h1>
-          <p className="text-neutral-600 max-w-2xl mx-auto">
-            Learn how to recycle effectively with our comprehensive guide to common household materials.
-          </p>
-        </div>
+    <PageFrame>
+        <PageIntro eyebrow="Know before you throw" title="Recycling Guide" description="Find the right bin, prepare materials correctly, and check local rules for anything unusual." />
         
-        <div className="bg-green-50 p-6 rounded-lg mb-10">
+        <div className="mb-5 rounded-lg border border-green-100 bg-green-50 p-4">
           <div className="flex items-start space-x-4">
-            <div className="bg-green-100 rounded-full p-3">
-              <Recycle className="h-6 w-6 text-green-600" />
+            <div className="rounded-full bg-green-100 p-2">
+              <Recycle className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-neutral-800 mb-2">Why Recycling Matters</h2>
-              <p className="text-neutral-700 mb-4">
-                Proper recycling conserves resources, reduces landfill waste, saves energy, and reduces greenhouse gas emissions. 
-                When we recycle correctly, materials can be transformed into new products instead of being wasted.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="bg-white p-4 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">75%</p>
-                  <p className="text-sm text-neutral-600">of India's waste is recyclable</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">33%</p>
-                  <p className="text-sm text-neutral-600">is actually recycled</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">94%</p>
-                  <p className="text-sm text-neutral-600">energy saved by recycling aluminum</p>
-                </div>
-              </div>
+              <h2 className="mb-1 text-lg font-bold text-neutral-800">The quick rule</h2>
+              <p className="text-sm text-neutral-700">Empty, rinse, and dry recyclable containers. Keep batteries, electronics, plastic bags, and broken glass out of the regular recycling bin.</p>
             </div>
           </div>
         </div>
         
-        <Tabs defaultValue="plastic" className="mb-12">
-          <TabsList className="mb-8 flex flex-wrap justify-center">
+        <div className="relative mx-auto mb-4 max-w-2xl">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search for bottles, cardboard, batteries, electronics..."
+            className="pl-9"
+            aria-label="Search recycling items"
+          />
+        </div>
+
+        <Tabs defaultValue={recyclingCategories[0]?.id ?? 'plastic'} className="mb-5">
+          <TabsList className="mb-4 flex flex-wrap justify-center">
             {recyclingCategories.map(category => (
               <TabsTrigger key={category.id} value={category.id} className="flex items-center">
                 {category.icon}
@@ -308,17 +337,22 @@ export default function RecyclingGuide() {
           
           {recyclingCategories.map(category => (
             <TabsContent key={category.id} value={category.id}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {category.items.map(item => (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {category.items.filter((item) => {
+                  const query = searchQuery.trim().toLowerCase();
+                  if (!query) return true;
+                  return [item.title, item.description, ...item.howTo, ...item.commonMistakes, ...item.tips]
+                    .some(value => value.toLowerCase().includes(query));
+                }).map(item => (
                   <Card key={item.id} className="overflow-hidden">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-center mb-4">
+                    <CardContent className="p-4">
+                      <div className="mb-2 flex items-center justify-between">
                         <h3 className="text-xl font-bold">{item.title}</h3>
                         {item.symbol && (
                           <span className="text-2xl text-green-600">{item.symbol}</span>
                         )}
                       </div>
-                      <p className="text-neutral-600 mb-4">{item.description}</p>
+                      <p className="mb-2 text-sm text-neutral-600">{item.description}</p>
                       
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="how-to">
@@ -363,37 +397,20 @@ export default function RecyclingGuide() {
                     </CardContent>
                   </Card>
                 ))}
+                {category.items.filter((item) => {
+                  const query = searchQuery.trim().toLowerCase();
+                  if (!query) return true;
+                  return [item.title, item.description, ...item.howTo, ...item.commonMistakes, ...item.tips]
+                    .some(value => value.toLowerCase().includes(query));
+                }).length === 0 && (
+                  <p className="col-span-full text-center text-neutral-600 py-12">No recycling guidance matches your search.</p>
+                )}
               </div>
             </TabsContent>
           ))}
         </Tabs>
         
-        <div className="mt-12 bg-neutral-50 p-6 rounded-lg border border-neutral-200">
-          <div className="flex items-start space-x-4">
-            <div className="bg-neutral-200 rounded-full p-3 flex-shrink-0">
-              <HelpCircle className="h-6 w-6 text-neutral-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold mb-2">Not Sure Where Something Goes?</h2>
-              <p className="mb-4">
-                When in doubt, check with your local recycling provider. Every municipality has different rules, and 
-                recycling the wrong items can contaminate an entire batch.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2 text-green-600">
-                  <Recycle className="h-5 w-5" />
-                  <span className="font-medium">Recycle when certain</span>
-                </div>
-                <div className="flex items-center space-x-2 text-red-600">
-                  <Trash className="h-5 w-5" />
-                  <span className="font-medium">Trash when in doubt</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+        <p className="mt-4 text-center text-xs text-neutral-500">Local collection rules vary. When unsure, check with your waste provider before putting an item in the bin.</p>
+    </PageFrame>
   );
 }

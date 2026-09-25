@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { useEffect, useState } from 'react';
+import { PageFrame, PageIntro } from '@/components/layout/page-frame';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Leaf, ThumbsUp, MessageCircle, Share2, Send, Facebook, Twitter, Linkedin, Copy, X, Check } from 'lucide-react';
+import { Leaf, ThumbsUp, MessageCircle, Share2, Send, Facebook, Twitter, Linkedin, Copy, Check, Bookmark, CheckCircle2, RotateCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,84 +34,58 @@ interface Comment {
   avatar?: string;
 }
 
+const FALLBACK_TIPS: EcoTip[] = [
+  { id: -1, title: 'Make one meal plant-forward', description: 'Replace meat in one familiar meal with beans, lentils, or seasonal vegetables. Familiar recipes make sustainable habits easier to repeat.', category: 'food', likes: 0, comments: 0 },
+  { id: -2, title: 'Keep a reusable kit by the door', description: 'Place a bottle, coffee cup, and shopping bag where you leave home so the lower-waste choice is the easy choice.', category: 'everyday', likes: 0, comments: 0 },
+  { id: -3, title: 'Give electronics a second life', description: 'Repair, donate, or responsibly recycle devices before buying replacements. Remove personal data before passing them on.', category: 'waste', likes: 0, comments: 0 },
+  { id: -4, title: 'Use less energy while cooking', description: 'Match the pan to the burner, use a lid, and turn the heat down once food is simmering.', category: 'energy', likes: 0, comments: 0 },
+];
+
 export default function DailyTips() {
   const [likedTips, setLikedTips] = useState<Set<number>>(new Set());
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentTip, setCurrentTip] = useState<EcoTip | null>(null);
   const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState<Comment[]>([
-    { id: 1, tipId: 1, author: 'Raj Singh', content: 'This has been a game-changer for me. I carry my water bottle everywhere now!', createdAt: 'Apr 10, 2025' },
-    { id: 2, tipId: 1, author: 'Priya Patel', content: 'I switched to a steel bottle last year. No more plastic waste!', createdAt: 'Apr 10, 2025' },
-    { id: 3, tipId: 2, author: 'Vikram Malhotra', content: 'Started composting last month. My plants are loving it!', createdAt: 'Apr 9, 2025' },
-    { id: 4, tipId: 3, author: 'Ananya Sharma', content: 'Changed all my bulbs to LED and saw my electricity bill drop significantly.', createdAt: 'Apr 8, 2025' },
-  ]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const { toast } = useToast();
   const [featuredTip, setFeaturedTip] = useState<EcoTip | null>(null);
+  const [tips, setTips] = useState<EcoTip[]>([]);
   const [loadingTip, setLoadingTip] = useState(false);
+  const [savedTips, setSavedTips] = useState<Set<number>>(new Set());
+  const [completedTips, setCompletedTips] = useState<Set<number>>(new Set());
+  const [refreshingTip, setRefreshingTip] = useState(false);
   
-  const tips: EcoTip[] = [
-    {
-      id: 1,
-      title: "Use Reusable Water Bottles",
-      description: "Switch to a reusable water bottle instead of buying single-use plastic bottles. This can save hundreds of plastic bottles per year.",
-      category: "Reduce Waste",
-      likes: 543,
-      comments: 32
-    },
-    {
-      id: 2,
-      title: "Start Composting Food Scraps",
-      description: "Composting food scraps can reduce your household waste by up to 30% while creating nutrient-rich soil for your garden.",
-      category: "Food & Garden",
-      likes: 421,
-      comments: 45
-    },
-    {
-      id: 3,
-      title: "Switch to LED Light Bulbs",
-      description: "LED bulbs use up to 90% less energy than incandescent bulbs and last up to 25 times longer, saving both energy and money.",
-      category: "Energy Saving",
-      likes: 387,
-      comments: 28
-    },
-    {
-      id: 4,
-      title: "Use Cold Water for Laundry",
-      description: "Washing clothes in cold water gets them just as clean as hot water but uses much less energy. 90% of energy used in washing machines goes to heating water.",
-      category: "Energy Saving",
-      likes: 326,
-      comments: 19
-    },
-    {
-      id: 5,
-      title: "Plant Native Species",
-      description: "Native plants require less water, fertilizer, and maintenance while providing habitat for local wildlife and pollinators.",
-      category: "Biodiversity",
-      likes: 482,
-      comments: 37
-    },
-    {
-      id: 6,
-      title: "Unplug Electronics When Not in Use",
-      description: "Even when turned off, many electronics continue to draw power. Unplug them completely to eliminate this 'phantom power' usage.",
-      category: "Energy Saving",
-      likes: 293,
-      comments: 21
-    }
-  ];
-  
-  const handleLike = (tipId: number) => {
+  const handleLike = async (tipId: number) => {
+    const isLiked = likedTips.has(tipId);
     setLikedTips(prev => {
       const newLiked = new Set(prev);
-      if (newLiked.has(tipId)) {
+      if (isLiked) {
         newLiked.delete(tipId);
       } else {
         newLiked.add(tipId);
       }
       return newLiked;
     });
+
+    if (tipId < 0) return;
+
+    try {
+      const response = await fetch(`/api/tips/${tipId}/like`, {
+        method: isLiked ? 'DELETE' : 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Sign in to save your likes');
+    } catch (error) {
+      setLikedTips(prev => {
+        const reverted = new Set(prev);
+        if (isLiked) reverted.add(tipId);
+        else reverted.delete(tipId);
+        return reverted;
+      });
+      toast({ title: 'Could not update like', description: 'Please sign in and try again.', variant: 'destructive' });
+    }
   };
   
   const openCommentDialog = (tip: EcoTip) => {
@@ -153,6 +125,15 @@ export default function DailyTips() {
   const getTipCommentsCount = (tipId: number) => {
     return filterCommentsByTip(tipId).length;
   };
+
+  const toggleSetValue = (setter: React.Dispatch<React.SetStateAction<Set<number>>>, tipId: number) => {
+    setter(previous => {
+      const next = new Set(previous);
+      if (next.has(tipId)) next.delete(tipId);
+      else next.add(tipId);
+      return next;
+    });
+  };
   
   const handleShare = (platform: string) => {
     if (!currentTip) return;
@@ -187,15 +168,71 @@ export default function DailyTips() {
     setShareDialogOpen(false);
   };
 
-  // Fetch the daily tip when the page mounts
+  const refreshDailyTip = async () => {
+    setRefreshingTip(true);
+    try {
+      const response = await fetch('/api/daily-tip?refresh=true', { credentials: 'include' });
+      if (!response.ok) throw new Error('Unable to refresh today\'s tip');
+      const data = await response.json();
+      setFeaturedTip({
+        id: data.id ?? 0,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        likes: 0,
+        comments: 0,
+        image: data.imageUrl ?? undefined,
+      });
+      toast({ title: 'Tip refreshed', description: 'Today\'s eco tip was generated again.' });
+    } catch {
+      toast({ title: 'Could not refresh tip', description: 'Please try again in a moment.', variant: 'destructive' });
+    } finally {
+      setRefreshingTip(false);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      setSavedTips(new Set(JSON.parse(localStorage.getItem('naturecert-saved-tips') || '[]')));
+      setCompletedTips(new Set(JSON.parse(localStorage.getItem('naturecert-completed-tips') || '[]')));
+    } catch {
+      // Ignore malformed local progress and start fresh.
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('naturecert-saved-tips', JSON.stringify(Array.from(savedTips)));
+  }, [savedTips]);
+
+  useEffect(() => {
+    localStorage.setItem('naturecert-completed-tips', JSON.stringify(Array.from(completedTips)));
+  }, [completedTips]);
+
   useEffect(() => {
     (async () => {
       try {
         setLoadingTip(true);
-        const res = await fetch('/api/daily-tip');
-        if (res.ok) {
-          const data = await res.json();
-          if (data) setFeaturedTip({ id: data.id ?? 0, title: data.title, description: data.description, category: data.category, likes: 0, comments: 0, image: data.imageUrl ?? undefined });
+        const [featuredResponse, tipsResponse] = await Promise.all([
+          fetch('/api/daily-tip'),
+          fetch('/api/tips'),
+        ]);
+        if (featuredResponse.ok) {
+          const data = await featuredResponse.json();
+          if (data) {
+            setFeaturedTip({
+              id: data.id ?? 0,
+              title: data.title,
+              description: data.description,
+              category: data.category,
+              likes: 0,
+              comments: 0,
+              image: data.imageUrl ?? undefined,
+            });
+          }
+        }
+        if (tipsResponse.ok) {
+          const catalogTips = await tipsResponse.json();
+          setTips(catalogTips.filter((tip: EcoTip) => tip.category !== 'daily-tip'));
         }
       } catch (e) {
         console.error('Failed to load daily tip', e);
@@ -204,88 +241,80 @@ export default function DailyTips() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!featuredTip && !loadingTip) setFeaturedTip(FALLBACK_TIPS[0]);
+    if (tips.length === 0 && !loadingTip) setTips(FALLBACK_TIPS.slice(1));
+  }, [featuredTip, loadingTip, tips.length]);
+
+  const allTips = featuredTip ? [featuredTip, ...tips] : tips;
+  const filteredTips = allTips;
   
   return (
-    <div>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">Daily Eco Tips</h1>
-          <p className="text-neutral-600 max-w-2xl mx-auto">
-            Simple daily actions that can help you live more sustainably and reduce your environmental footprint.
-          </p>
-        </div>
-        
-        <div className="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
+    <PageFrame>
+        <PageIntro eyebrow="Small actions, repeated often" title="Daily Eco Tips" description="Practical actions you can try today, with enough context to make the habit stick." />
+
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3">
           <div className="flex items-start space-x-4">
-            <div className="bg-primary/10 rounded-full p-3">
+            <div className="rounded-full bg-primary/10 p-2">
               <Leaf className="h-6 w-6 text-primary" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-neutral-800 mb-2">Today's Featured Tip</h2>
-              <p className="text-neutral-700">
-                {loadingTip ? 'Loading today\'s tip...' : (featuredTip ? featuredTip.description : 'Try a small sustainable action today.')}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xl font-bold text-neutral-800">Today&apos;s Tip</h2>
+                <Button type="button" variant="outline" size="sm" onClick={refreshDailyTip} disabled={refreshingTip}>
+                  <RotateCw className={`mr-2 h-4 w-4 ${refreshingTip ? 'animate-spin' : ''}`} />
+                  {refreshingTip ? 'Generating...' : 'Generate fresh tip'}
+                </Button>
+              </div>
+              {loadingTip ? (
+                <p className="text-neutral-700">Generating today&apos;s tip...</p>
+              ) : featuredTip ? (
+                <>
+                  <h3 className="font-semibold text-neutral-800">{featuredTip.title}</h3>
+                  <p className="text-neutral-700">{featuredTip.description}</p>
+                </>
+              ) : (
+                <p className="text-neutral-700">Today&apos;s tip could not be loaded. Please refresh to try again.</p>
+              )}
             </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tips.map((tip) => (
-            <Card key={tip.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
-              <CardContent className="p-0">
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
-                      {tip.category}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">{tip.title}</h3>
-                  <p className="text-neutral-600 mb-4">{tip.description}</p>
-                  
-                  <div className="flex justify-between items-center border-t pt-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={likedTips.has(tip.id) ? "text-primary" : "text-neutral-500"}
-                      onClick={() => handleLike(tip.id)}
-                    >
-                      <ThumbsUp className="h-4 w-4 mr-1" />
-                      <span>{likedTips.has(tip.id) ? tip.likes + 1 : tip.likes}</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-neutral-500"
-                      onClick={() => openCommentDialog(tip)}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      <span>{getTipCommentsCount(tip.id)}</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-neutral-500"
-                      onClick={() => openShareDialog(tip)}
-                    >
-                      <Share2 className="h-4 w-4 mr-1" />
-                      <span>Share</span>
-                    </Button>
-                  </div>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm text-neutral-600">Showing {filteredTips.length} {filteredTips.length === 1 ? 'tip' : 'tips'}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredTips.map((tip) => (
+            <Card key={tip.id} className="overflow-hidden transition-shadow duration-300 hover:shadow-md">
+              <CardContent className="p-4">
+                <div className="mb-3 flex items-start justify-between">
+                  <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium capitalize text-primary">{tip.category}</span>
+                  <Leaf className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="mb-2 max-h-14 overflow-hidden text-lg font-bold">{tip.title}</h3>
+                <p className="mb-3 max-h-16 overflow-hidden text-sm text-neutral-600">{tip.description}</p>
+                <div className="mb-3 flex gap-1">
+                  <Button variant={completedTips.has(tip.id) ? 'default' : 'outline'} size="sm" onClick={() => toggleSetValue(setCompletedTips, tip.id)} aria-pressed={completedTips.has(tip.id)}>
+                    <CheckCircle2 className="mr-1 h-4 w-4" />{completedTips.has(tip.id) ? 'Completed' : 'Mark done'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => toggleSetValue(setSavedTips, tip.id)} aria-pressed={savedTips.has(tip.id)} aria-label={savedTips.has(tip.id) ? 'Remove from saved tips' : 'Save tip'}>
+                    <Bookmark className={`mr-1 h-4 w-4 ${savedTips.has(tip.id) ? 'fill-current text-primary' : ''}`} />{savedTips.has(tip.id) ? 'Saved' : 'Save'}
+                  </Button>
+                </div>
+                <div className="flex justify-end border-t pt-3">
+                  <Button variant="ghost" size="sm" onClick={() => openShareDialog(tip)}><Share2 className="mr-1 h-4 w-4" />Share</Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-        
-        <div className="mt-8 text-center">
-          <Button variant="outline" className="px-8">
-            Load More Tips
-          </Button>
-        </div>
-      </main>
-      <Footer />
-      
+        {filteredTips.length === 0 && <div className="rounded-lg border border-dashed border-neutral-300 py-12 text-center"><p className="font-medium text-neutral-700">No tips match your search.</p><p className="mt-1 text-sm text-neutral-500">Try another topic or reset the filters.</p></div>}
+        {/*
+          The featured tip is included in the filterable catalog above so the controls
+          behave consistently for both generated and fallback content.
+        */}
       {/* Comments Dialog */}
       <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
@@ -402,6 +431,6 @@ export default function DailyTips() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageFrame>
   );
 }

@@ -1,32 +1,48 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { PageFrame } from '@/components/layout/page-frame';
 import ResourceCard from '@/components/resources/resource-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Radio, RefreshCw } from 'lucide-react';
 import type { Resource } from '@shared/schema';
 
 export default function Resources() {
   const [activeTab, setActiveTab] = useState("all");
   
-  const { data: resources, isLoading, error } = useQuery<Resource[]>({
+  const { data: resources = [], isLoading, error, refetch: refetchResources } = useQuery<Resource[]>({
     queryKey: ['/api/resources'],
   });
+
+  const { data: liveVideos = [], isLoading: videosLoading, refetch: refetchVideos, isFetching: videosFetching } = useQuery<Resource[]>({
+    queryKey: ['/api/resources/videos'],
+    queryFn: async () => {
+      const response = await fetch('/api/resources/videos');
+      if (!response.ok) throw new Error('Failed to fetch educational videos');
+      return response.json();
+    },
+    refetchInterval: 30 * 60 * 1000,
+  });
+
+  const refreshResources = () => {
+    void Promise.all([refetchResources(), refetchVideos()]);
+  };
+
+  const combinedResources = [...liveVideos, ...resources.filter((resource) => !liveVideos.some((video) => video.link === resource.link))];
   
-  const filteredResources = resources?.filter(resource => {
+  const filteredResources = combinedResources.filter(resource => {
     if (activeTab === "all") return true;
+    if (activeTab === "video") return resource.type === "Webinar" && liveVideos.some((video) => video.link === resource.link);
     return resource.type.toLowerCase() === activeTab.toLowerCase();
   });
 
   return (
-    <div>
-      <Header />
-      <main>
+    <PageFrame mainClassName="!py-0">
         <section className="bg-primary text-white py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-3xl md:text-4xl font-bold font-heading mb-4">Educational Resources</h1>
             <p className="text-lg opacity-90 max-w-3xl mx-auto">
-              Expand your knowledge about environmental certifications, sustainability practices, and how they impact our planet.
+              Explore curated guides and fresh sustainability videos from trusted educational publishers.
             </p>
           </div>
         </section>
@@ -34,17 +50,25 @@ export default function Resources() {
         <section className="py-12 md:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="flex justify-center mb-8">
-                <TabsList className="grid w-full max-w-md grid-cols-4">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="guide">Guides</TabsTrigger>
-                  <TabsTrigger value="webinar">Webinars</TabsTrigger>
-                  <TabsTrigger value="case study">Case Studies</TabsTrigger>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                <TabsList className="flex w-full max-w-lg gap-1 overflow-x-auto p-1">
+                  <TabsTrigger className="min-w-max" value="all">All</TabsTrigger>
+                  <TabsTrigger className="min-w-max" value="video">Videos</TabsTrigger>
+                  <TabsTrigger className="min-w-max" value="guide">Guides</TabsTrigger>
+                  <TabsTrigger className="min-w-max" value="webinar">Webinars</TabsTrigger>
+                  <TabsTrigger className="min-w-max" value="case study">Case Studies</TabsTrigger>
                 </TabsList>
+                <div className="flex items-center gap-3 text-sm text-neutral-500">
+                  <span className="flex items-center"><Radio className="h-3 w-3 mr-1 text-primary" /> Live videos</span>
+                  <Button variant="outline" size="sm" onClick={refreshResources} disabled={videosFetching}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${videosFetching ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
               
               <TabsContent value={activeTab}>
-                {isLoading ? (
+                {isLoading || videosLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                       <div key={i} className="bg-white rounded-xl shadow-sm h-80 animate-pulse">
@@ -83,53 +107,6 @@ export default function Resources() {
           </div>
         </section>
         
-        <section className="py-12 bg-neutral-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold font-heading text-neutral-800 mb-4">Looking for Specific Information?</h2>
-              <p className="text-neutral-600 max-w-3xl mx-auto">
-                If you need specific information about environmental certifications or sustainability practices, our team is here to help.
-              </p>
-            </div>
-            
-            <div className="flex flex-col md:flex-row gap-6 justify-center">
-              <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 text-center md:w-1/3">
-                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold font-heading text-neutral-800 mb-2">Request a Consultation</h3>
-                <p className="text-neutral-600 mb-4">Speak with our certification experts for personalized guidance and information.</p>
-                <a href="/contact" className="text-primary font-medium hover:text-primary-dark">Contact Us</a>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 text-center md:w-1/3">
-                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold font-heading text-neutral-800 mb-2">Custom Resource Guides</h3>
-                <p className="text-neutral-600 mb-4">Request a custom guide tailored to your specific industry or needs.</p>
-                <a href="/contact" className="text-primary font-medium hover:text-primary-dark">Request a Guide</a>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 text-center md:w-1/3">
-                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold font-heading text-neutral-800 mb-2">Workshop Registration</h3>
-                <p className="text-neutral-600 mb-4">Join our upcoming workshops and webinars on sustainability practices.</p>
-                <a href="/contact" className="text-primary font-medium hover:text-primary-dark">View Schedule</a>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </div>
+    </PageFrame>
   );
 }

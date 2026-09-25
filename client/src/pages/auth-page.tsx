@@ -140,9 +140,9 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-[100dvh] flex flex-col overflow-y-auto md:h-[100dvh] md:flex-row md:overflow-hidden">
       {/* Left side - Auth forms */}
-      <div className="md:w-1/2 p-8 md:p-12 flex items-center justify-center">
+      <div className="md:w-1/2 overflow-y-auto p-8 md:p-12 flex items-center justify-center">
         <div className="max-w-md w-full">
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center mb-6">
@@ -351,52 +351,39 @@ export default function AuthPage() {
             </TabsContent>
           </Tabs>
           
-          <div className="mt-8 text-center">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                // mark auth state change and navigate guest to recycling guide
-                window.dispatchEvent(new Event('authChanged'));
-                setLocation('/recycling-guide');
-              }}
-            >
-              Continue as Guest
-            </Button>
-          </div>
         </div>
       </div>
       
       {/* Right side - Hero section */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-green-600 to-teal-600 text-white p-12 items-center justify-center">
+      <div className="hidden md:flex md:h-full md:w-1/2 overflow-y-auto bg-gradient-to-br from-green-600 to-teal-600 text-white p-12 items-center justify-center">
         <div className="max-w-md">
           <div className="mb-8">
             <div className="h-20 w-20 bg-white/20 rounded-full flex items-center justify-center mb-6">
               <Leaf className="h-10 w-10 text-white" />
             </div>
-            <h2 className="text-3xl font-bold mb-4">Understand Environmental Certifications</h2>
+            <h2 className="text-3xl font-bold mb-4">A clearer workspace for sustainable decisions</h2>
             <p className="text-lg opacity-90 mb-6">
-              NatureCert helps you navigate the complex world of environmental certifications and understand their real impact on the planet.
+              Find practical next steps without the noise: guides, alternatives, challenges, live resources, and an AI assistant.
             </p>
             
             <div className="border-t border-white/20 pt-6 mt-6">
-              <h3 className="text-xl font-bold mb-4">Benefits of joining NatureCert:</h3>
+              <h3 className="text-xl font-bold mb-4">What you can do with NatureCert:</h3>
               <ul className="space-y-3">
                 <li className="flex items-start">
                   <ArrowRight className="h-5 w-5 mr-2 mt-0.5" />
-                  <span>Access to detailed certification comparisons</span>
+                  <span>Explore practical recycling and sustainability guides</span>
                 </li>
                 <li className="flex items-start">
                   <ArrowRight className="h-5 w-5 mr-2 mt-0.5" />
-                  <span>Track your business's certification progress</span>
+                  <span>Track your progress through personal eco-challenges</span>
                 </li>
                 <li className="flex items-start">
                   <ArrowRight className="h-5 w-5 mr-2 mt-0.5" />
-                  <span>Receive personalized certification recommendations</span>
+                  <span>Find lower-waste alternatives for everyday products</span>
                 </li>
                 <li className="flex items-start">
                   <ArrowRight className="h-5 w-5 mr-2 mt-0.5" />
-                  <span>Join a community of sustainability advocates</span>
+                  <span>Ask the Eco Assistant for practical guidance</span>
                 </li>
               </ul>
             </div>

@@ -83,9 +83,9 @@ export default function Contact() {
   }
 
   return (
-    <div>
-      <Header />
-      <main>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="flex-none"><Header /></div>
+      <main className="min-h-0 flex-1 overflow-y-auto">
         <section className="bg-primary text-white py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-3xl md:text-4xl font-bold font-heading mb-4">Contact Us</h1>
@@ -194,9 +194,12 @@ export default function Contact() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="certification-question">Certification Question</SelectItem>
-                                <SelectItem value="business-inquiry">Business Inquiry</SelectItem>
-                                <SelectItem value="partnership">Partnership Opportunity</SelectItem>
+                                <SelectItem value="recycling-waste">Recycling and Waste</SelectItem>
+                                <SelectItem value="eco-alternatives">Eco-Friendly Alternatives</SelectItem>
+                                <SelectItem value="carbon-footprint">Carbon Footprint Calculator</SelectItem>
+                                <SelectItem value="green-news">Green News</SelectItem>
+                                <SelectItem value="technical-help">Technical Help</SelectItem>
+                                <SelectItem value="feedback">Website Feedback</SelectItem>
                                 <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
                             </Select>
@@ -340,30 +343,6 @@ export default function Contact() {
           </div>
         </section>
         
-        <section className="py-12 bg-primary/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-              <h2 className="text-2xl font-bold font-heading text-neutral-800 mb-4">Subscribe to Our Newsletter</h2>
-              <p className="text-neutral-600 mb-6 max-w-2xl mx-auto">
-                Stay updated with the latest news, research, and insights about environmental certifications and sustainability practices.
-              </p>
-              <div className="flex flex-col sm:flex-row max-w-lg mx-auto gap-3">
-                <Input 
-                  type="email" 
-                  placeholder="Your email address"
-                  className="flex-1"
-                />
-                <Button className="whitespace-nowrap">
-                  Subscribe
-                </Button>
-              </div>
-              <p className="text-xs text-neutral-500 mt-4">
-                By subscribing, you agree to receive emails from NatureCert. You can unsubscribe at any time.
-              </p>
-            </div>
-          </div>
-        </section>
-        
         <section className="py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-6">
@@ -437,7 +416,7 @@ export default function Contact() {
           </div>
         </section>
       </main>
-      <Footer />
+      <div className="flex-none"><Footer /></div>
     </div>
   );
 }

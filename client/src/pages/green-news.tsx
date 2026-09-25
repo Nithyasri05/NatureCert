@@ -1,17 +1,12 @@
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import { PageFrame, PageIntro } from '@/components/layout/page-frame';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, ArrowRight, Bookmark, Share2, MapPin, Filter } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, Bookmark, Share2, MapPin, Filter, RefreshCw, Radio, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NewsArticle {
   id: number;
@@ -21,9 +16,27 @@ interface NewsArticle {
   readTime: string;
   categories: string[];
   source: string;
-  country: string;
+  country?: string;
   fullArticle?: string;
   image?: string;
+  imageUrl?: string | null;
+  link?: string;
+}
+
+const newsImageByTopic = {
+  renewable: 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=1200&q=80',
+  waste: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=80',
+  water: 'https://images.unsplash.com/photo-1437482078695-73f5ca6c96e2?auto=format&fit=crop&w=1200&q=80',
+  default: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80',
+};
+
+function getNewsImage(article: NewsArticle) {
+  if (article.image || article.imageUrl) return article.image || article.imageUrl || newsImageByTopic.default;
+  const topic = `${article.title} ${article.categories.join(' ')}`.toLowerCase();
+  if (topic.includes('renewable') || topic.includes('solar') || topic.includes('energy')) return newsImageByTopic.renewable;
+  if (topic.includes('waste') || topic.includes('plastic') || topic.includes('recycl')) return newsImageByTopic.waste;
+  if (topic.includes('water') || topic.includes('ocean')) return newsImageByTopic.water;
+  return newsImageByTopic.default;
 }
 
 export default function GreenNews() {
@@ -31,8 +44,21 @@ export default function GreenNews() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [newsSource, setNewsSource] = useState<'live-rss' | 'database-fallback' | null>(null);
+  const [visibleArticleCount, setVisibleArticleCount] = useState(6);
+
+  const { data: apiArticles = [], isLoading, isError, isFetching, refetch } = useQuery<NewsArticle[]>({
+    queryKey: ['/api/news'],
+    queryFn: async () => {
+      const res = await fetch('/api/news');
+      if (!res.ok) throw new Error('Failed to fetch green news');
+      setNewsSource(res.headers.get('X-News-Source') === 'live-rss' ? 'live-rss' : 'database-fallback');
+      return res.json();
+    },
+    refetchInterval: 10 * 60 * 1000,
+  });
   
-  const articles: NewsArticle[] = [
+  const staticArticles: NewsArticle[] = [
     {
       id: 1,
       title: "India Achieves 50% Renewable Energy Mix in Power Generation",
@@ -117,7 +143,15 @@ export default function GreenNews() {
       country: "India"
     }
   ];
-  
+
+  const articles: NewsArticle[] = apiArticles.length > 0
+    ? apiArticles.map(article => ({
+        ...article,
+        country: article.country ?? 'International',
+        image: article.imageUrl ?? undefined,
+      }))
+    : staticArticles;
+
   const toggleSave = (articleId: number) => {
     setSavedArticles(prev => {
       const newSaved = new Set(prev);
@@ -135,8 +169,8 @@ export default function GreenNews() {
     setArticleDialogOpen(true);
   };
   
-  const filteredArticles = selectedRegion 
-    ? articles.filter(article => article.country === selectedRegion)
+  const filteredArticles = selectedRegion
+    ? articles.filter(article => (article.country ?? 'International') === selectedRegion)
     : articles;
     
   // Prioritize Indian news
@@ -148,44 +182,69 @@ export default function GreenNews() {
   
   const featuredArticle = sortedArticles[0];
   const regularArticles = sortedArticles.slice(1);
+  const visibleArticles = regularArticles.slice(0, visibleArticleCount);
   
-  const regions = Array.from(new Set(articles.map(article => article.country)));
+  const regions = Array.from(new Set(
+    articles
+      .map(article => article.country ?? 'International')
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b));
   
   return (
-    <div>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4">Green News</h1>
-          <p className="text-neutral-600 max-w-2xl">
-            Stay updated with the latest environmental news, breakthroughs, and sustainable developments from around the world.
-          </p>
+    <>
+      <PageFrame>
+        <PageIntro eyebrow="Stay informed" title="Green News" description="Fresh environmental headlines and explainers, filtered by region and sourced from live feeds when available." />
+        <div className="mb-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-neutral-800 mb-2">Latest stories</h2>
+              <p className="text-neutral-600 max-w-2xl">
+                Live environmental headlines, breakthroughs, and sustainable developments from trusted publishers.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {newsSource === 'live-rss' && (
+                <Badge variant="outline" className="border-green-200 text-green-700">
+                  <Radio className="h-3 w-3 mr-1" /> Live feeds
+                </Badge>
+              )}
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
         </div>
         
         {/* Region Filter */}
-        <div className="mb-8 flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                {selectedRegion ? `Region: ${selectedRegion}` : "All Regions"}
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-neutral-500">
+            {filteredArticles.length} {filteredArticles.length === 1 ? 'story' : 'stories'}
+            {selectedRegion ? ` from ${selectedRegion}` : ` across ${regions.length} regions`}
+          </p>
+          <div className="flex items-center gap-2">
+            <Select value={selectedRegion ?? 'all'} onValueChange={(value) => setSelectedRegion(value === 'all' ? null : value)}>
+              <SelectTrigger className="w-[210px]">
+                <Filter className="mr-2 h-4 w-4 text-neutral-500" />
+                <SelectValue placeholder="Filter by region" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All regions</SelectItem>
+                {regions.map(region => (
+                  <SelectItem key={region} value={region}>{region}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedRegion && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedRegion(null)}>
+                Clear
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setSelectedRegion(null)}>
-                All Regions
-              </DropdownMenuItem>
-              {regions.map(region => (
-                <DropdownMenuItem key={region} onClick={() => setSelectedRegion(region)}>
-                  {region}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+          </div>
         </div>
         
         {/* Featured Article */}
-        <div className="mb-12 bg-green-50 rounded-xl overflow-hidden">
+        {featuredArticle ? <div className="mb-12 bg-green-50 rounded-xl overflow-hidden">
           <div className="p-6 md:p-8 md:flex">
             <div className="md:w-2/3 md:pr-8">
               <div className="flex items-center gap-2 mb-3">
@@ -221,21 +280,23 @@ export default function GreenNews() {
               </Button>
             </div>
             <div className="md:w-1/3 mt-6 md:mt-0">
-              <div className="h-48 md:h-full bg-neutral-200 rounded-lg flex items-center justify-center">
-                <span className="text-neutral-500">Featured Image</span>
-              </div>
+              <img src={getNewsImage(featuredArticle)} alt={featuredArticle.title} className="h-48 w-full rounded-lg object-cover md:h-full" />
             </div>
           </div>
-        </div>
+        </div> : (
+          <div className="mb-12 rounded-xl border border-dashed border-neutral-300 p-12 text-center">
+            <h2 className="mb-2 text-xl font-semibold text-neutral-800">No stories in this region</h2>
+            <p className="mb-5 text-neutral-600">Try another region or view all available news.</p>
+            <Button variant="outline" onClick={() => setSelectedRegion(null)}>View all regions</Button>
+          </div>
+        )}
         
         {/* Article Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {regularArticles.map(article => (
+            {visibleArticles.map(article => (
             <Card key={article.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
               <CardContent className="p-0">
-                <div className="h-40 bg-neutral-100 flex items-center justify-center">
-                  <span className="text-neutral-400">Article Image</span>
-                </div>
+                <img src={getNewsImage(article)} alt={article.title} className="h-40 w-full object-cover" loading="lazy" />
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-wrap gap-1">
@@ -289,11 +350,14 @@ export default function GreenNews() {
           ))}
         </div>
         
-        <div className="mt-12 text-center">
-          <Button variant="outline">Load More Articles</Button>
-        </div>
-      </main>
-      <Footer />
+        {visibleArticleCount < regularArticles.length && (
+          <div className="mt-12 text-center">
+            <Button variant="outline" onClick={() => setVisibleArticleCount(count => count + 3)}>
+              Load More Articles
+            </Button>
+          </div>
+        )}
+      </PageFrame>
       
       {/* Article Dialog */}
       <Dialog open={articleDialogOpen} onOpenChange={setArticleDialogOpen}>
@@ -338,12 +402,21 @@ export default function GreenNews() {
             ) : (
               <div>
                 <p className="text-lg font-medium mb-4">{selectedArticle?.summary}</p>
-                <p className="text-neutral-500 italic">Full article content will be available soon.</p>
+                {selectedArticle?.link ? (
+                  <Button asChild>
+                    <a href={selectedArticle.link} target="_blank" rel="noreferrer">
+                      Read full story at {selectedArticle.source}
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                ) : (
+                  <p className="text-neutral-500 italic">Full article content will be available soon.</p>
+                )}
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

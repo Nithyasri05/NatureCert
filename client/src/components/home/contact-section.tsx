@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { insertContactSubmissionSchema } from '@shared/schema';
-import { MapPin, Mail, Phone, Twitter, Linkedin, Facebook, Instagram } from 'lucide-react';
+import { Mail, Twitter, Linkedin, Facebook, Instagram } from 'lucide-react';
 import { 
   Form, 
   FormControl, 
@@ -81,28 +81,14 @@ export default function ContactSection() {
           <div className="md:flex">
             <div className="md:w-1/2 bg-primary p-8 md:p-12 text-white">
               <h2 className="text-2xl md:text-3xl font-bold font-heading mb-4">Get in Touch</h2>
-              <p className="mb-6 opacity-90">Have questions about environmental certifications or need help understanding which ones are right for your business? Reach out to our team of experts.</p>
+              <p className="mb-6 opacity-90">Have a question about a recycling rule, product swap, or sustainability workflow? Send a note and the NatureCert team will follow up.</p>
               
               <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <MapPin className="w-5 h-5 mr-4 mt-1" />
-                  <div>
-                    <h3 className="font-bold">Our Location</h3>
-                    <p className="opacity-90">3856 Sri Nagar,India </p>
-                  </div>
-                </div>
                 <div className="flex items-start">
                   <Mail className="w-5 h-5 mr-4 mt-1" />
                   <div>
                     <h3 className="font-bold">Email Us</h3>
                     <p className="opacity-90">info@naturecert.org</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <Phone className="w-5 h-5 mr-4 mt-1" />
-                  <div>
-                    <h3 className="font-bold">Call Us</h3>
-                    <p className="opacity-90">+91 9876543210</p>
                   </div>
                 </div>
               </div>
