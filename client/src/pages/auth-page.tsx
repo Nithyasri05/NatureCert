@@ -140,17 +140,17 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col overflow-y-auto md:h-[100dvh] md:flex-row md:overflow-hidden">
+    <div className="flex h-[100dvh] flex-col overflow-hidden md:flex-row">
       {/* Left side - Auth forms */}
-      <div className="md:w-1/2 overflow-y-auto p-8 md:p-12 flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4 md:w-1/2 md:flex-none md:p-8 lg:p-10">
         <div className="max-w-md w-full">
-          <div className="mb-8 text-center">
-            <div className="flex items-center justify-center mb-6">
-              <Leaf className="h-8 w-8 text-primary mr-2" />
+          <div className="mb-4 text-center sm:mb-6">
+            <div className="mb-3 flex items-center justify-center sm:mb-4">
+              <Leaf className="mr-2 h-7 w-7 text-primary sm:h-8 sm:w-8" />
               <h1 className="text-2xl font-bold text-neutral-800">NatureCert</h1>
             </div>
-            <h2 className="text-2xl font-bold text-neutral-800 mb-2">Welcome</h2>
-            <p className="text-neutral-600">Sign in to your account or create a new one</p>
+            <h2 className="mb-1 text-2xl font-bold text-neutral-800">Welcome</h2>
+            <p className="text-sm text-neutral-600 sm:text-base">Sign in to your account or create a new one</p>
           </div>
           
           <Tabs defaultValue="login" className="w-full">
@@ -170,7 +170,7 @@ export default function AuthPage() {
                 </div>
               </div>
             )}
-            <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsList className="mb-4 grid w-full grid-cols-2 sm:mb-6">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Sign Up</TabsTrigger>
             </TabsList>
@@ -178,7 +178,7 @@ export default function AuthPage() {
             {/* Login Form */}
             <TabsContent value="login">
               <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4 sm:space-y-5">
                   <FormField
                     control={loginForm.control}
                     name="email"
@@ -247,7 +247,7 @@ export default function AuthPage() {
             {/* Register Form */}
             <TabsContent value="register">
               <Form {...registerForm}>
-                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-6">
+                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-3 sm:space-y-4">
                   <FormField
                     control={registerForm.control}
                     name="name"
@@ -355,7 +355,7 @@ export default function AuthPage() {
       </div>
       
       {/* Right side - Hero section */}
-      <div className="hidden md:flex md:h-full md:w-1/2 overflow-y-auto bg-gradient-to-br from-green-600 to-teal-600 text-white p-12 items-center justify-center">
+      <div className="hidden h-full w-1/2 items-center justify-center overflow-hidden bg-gradient-to-br from-green-600 to-teal-600 p-10 text-white md:flex lg:p-12">
         <div className="max-w-md">
           <div className="mb-8">
             <div className="h-20 w-20 bg-white/20 rounded-full flex items-center justify-center mb-6">
