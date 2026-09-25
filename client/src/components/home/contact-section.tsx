@@ -156,7 +156,7 @@ export default function ContactSection() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="certification-question">Certification Question</SelectItem>
+                            <SelectItem value="sustainability-question">Sustainability Question</SelectItem>
                             <SelectItem value="business-inquiry">Business Inquiry</SelectItem>
                             <SelectItem value="partnership">Partnership Opportunity</SelectItem>
                             <SelectItem value="other">Other</SelectItem>

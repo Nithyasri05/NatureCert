@@ -47,17 +47,23 @@ const generateChatResponse = async (messages: Array<{ role: "user" | "assistant"
   const systemInstruction = "You are NatureCert's Eco Assistant. Give accurate, practical sustainability and recycling advice. Keep answers under three short paragraphs, state when local rules vary, and never invent current statistics.";
 
   if (process.env.GEMINI_API_KEY) {
-    try {
-      const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await client.interactions.create({
-        model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
-        input: messages.map((message) => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`).join("\n"),
-        system_instruction: systemInstruction,
-        generation_config: { max_output_tokens: 1000 },
-      });
-      if (response.output_text?.trim()) return { content: response.output_text.trim(), source: "gemini" };
-    } catch (error) {
-      console.error("Gemini chat failed:", error);
+    const primaryModel = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+    const models = primaryModel === "gemini-flash-lite-latest"
+      ? [primaryModel]
+      : [primaryModel, "gemini-flash-lite-latest"];
+    const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    for (const model of models) {
+      try {
+        const response = await client.interactions.create({
+          model,
+          input: messages.map((message) => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`).join("\n"),
+          system_instruction: systemInstruction,
+          generation_config: { max_output_tokens: 1000 },
+        });
+        if (response.output_text?.trim()) return { content: response.output_text.trim(), source: "gemini" };
+      } catch (error) {
+        console.error(`Gemini chat failed for ${model}:`, error);
+      }
     }
   }
 
@@ -132,50 +138,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ content: fallbackChatResponse(parsed.data.messages.at(-1)?.content ?? ""), source: "local" });
     }
   });
-  // Certifications endpoints
-  app.get("/api/certifications", async (req: Request, res: Response) => {
-    try {
-      const category = req.query.category as string | undefined;
-      const search = req.query.search as string | undefined;
-      
-      let certifications;
-      
-      if (search) {
-        certifications = await storage.getCertificationsBySearch(search);
-      } else if (category) {
-        certifications = await storage.getCertificationsByCategory(category);
-      } else {
-        certifications = await storage.getCertifications();
-      }
-      
-      res.json(certifications);
-    } catch (error) {
-      console.error("Error fetching certifications:", error);
-      res.status(500).json({ message: "Failed to fetch certifications" });
-    }
-  });
-
-  app.get("/api/certifications/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id, 10);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid certification ID" });
-      }
-      
-      const certification = await storage.getCertification(id);
-      
-      if (!certification) {
-        return res.status(404).json({ message: "Certification not found" });
-      }
-      
-      res.json(certification);
-    } catch (error) {
-      console.error("Error fetching certification:", error);
-      res.status(500).json({ message: "Failed to fetch certification" });
-    }
-  });
-
   // Resources endpoints
   app.get("/api/resources", async (req: Request, res: Response) => {
     try {

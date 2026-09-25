@@ -1,6 +1,5 @@
 import { 
   users, type User, type InsertUser,
-  certifications, type Certification, type InsertCertification,
   resources, type Resource, type InsertResource,
   contactSubmissions, type ContactSubmission, type InsertContactSubmission,
   ecoTips, type EcoTip, type InsertEcoTip,
@@ -29,13 +28,6 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
-  // Certification methods
-  getCertifications(): Promise<Certification[]>;
-  getCertification(id: number): Promise<Certification | undefined>;
-  getCertificationsByCategory(category: string): Promise<Certification[]>;
-  getCertificationsBySearch(searchTerm: string): Promise<Certification[]>;
-  createCertification(certification: InsertCertification): Promise<Certification>;
   
   // Resources methods
   getResources(): Promise<Resource[]>;
@@ -255,36 +247,6 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser as any).returning();
     return user;
-  }
-  
-  // Certification methods
-  async getCertifications(): Promise<Certification[]> {
-    return await db.select().from(certifications);
-  }
-  
-  async getCertification(id: number): Promise<Certification | undefined> {
-    const [certification] = await db.select().from(certifications).where(eq(certifications.id, id));
-    return certification;
-  }
-  
-  async getCertificationsByCategory(category: string): Promise<Certification[]> {
-    return await db.select().from(certifications).where(eq(certifications.category, category));
-  }
-  
-  async getCertificationsBySearch(searchTerm: string): Promise<Certification[]> {
-    return await db.select().from(certifications).where(
-      or(
-        ilike(certifications.name, `%${searchTerm}%`),
-        ilike(certifications.description, `%${searchTerm}%`),
-        ilike(certifications.category, `%${searchTerm}%`),
-        ilike(certifications.region, `%${searchTerm}%`)
-      )
-    );
-  }
-  
-  async createCertification(insertCertification: InsertCertification): Promise<Certification> {
-    const [certification] = await db.insert(certifications).values(insertCertification as any).returning();
-    return certification;
   }
   
   // Resource methods
@@ -657,20 +619,16 @@ export class DatabaseStorage implements IStorage {
   
   // Initialize the database with sample data if needed
   private async initSampleDataIfNeeded() {
-    // Check if we already have certifications
-    const existingCertifications = await db.select().from(certifications);
     const existingAlternatives = await db.select().from(ecoAlternatives);
     const existingChallenges = await db.select().from(ecoChallenges);
     const existingTips = await db.select().from(ecoTips);
     const existingRecyclingCategories = await db.select().from(recyclingCategories);
     
-    if (existingCertifications.length === 0) {
+    if (existingAlternatives.length === 0) {
       await this.initSampleData();
-    } else if (existingAlternatives.length === 0) {
-      await this.initSampleAlternatives();
     }
 
-    if (existingCertifications.length > 0 && existingChallenges.length === 0) {
+    if (existingAlternatives.length > 0 && existingChallenges.length === 0) {
       await this.initSampleChallenges();
     }
 
@@ -895,115 +853,11 @@ export class DatabaseStorage implements IStorage {
   // Initialize the storage with sample data
   private async initSampleData() {
     try {
-      // Sample certifications
-      const sampleCertifications: InsertCertification[] = [
-        {
-          name: "Forest Stewardship Council (FSC)",
-          category: "Forestry",
-          description: "Ensures forest products come from responsibly managed forests that provide environmental, social and economic benefits.",
-          region: "Global",
-          startYear: 1993,
-          imageUrl: "",
-          rating: 4
-        },
-        {
-          name: "USDA Organic",
-          category: "Agriculture",
-          description: "Certifies products grown and processed according to federal guidelines addressing soil quality, animal raising practices, and pest control.",
-          region: "United States",
-          startYear: 2002,
-          imageUrl: "",
-          rating: 5
-        },
-        {
-          name: "ENERGY STAR",
-          category: "Energy",
-          description: "Identifies and promotes energy-efficient products, homes, and buildings to reduce energy consumption and prevent greenhouse gas emissions.",
-          region: "North America",
-          startYear: 1992,
-          imageUrl: "",
-          rating: 3
-        },
-        {
-          name: "Rainforest Alliance",
-          category: "Agriculture",
-          description: "Certifies farms, forests, and tourism enterprises that meet rigorous environmental, social, and economic sustainability criteria.",
-          region: "Global",
-          startYear: 1987,
-          imageUrl: "",
-          rating: 4
-        },
-        {
-          name: "LEED (Leadership in Energy and Environmental Design)",
-          category: "Construction",
-          description: "Provides frameworks for creating healthy, highly efficient, cost-saving green buildings.",
-          region: "Global",
-          startYear: 1998,
-          imageUrl: "",
-          rating: 4
-        },
-        {
-          name: "Fair Trade Certified",
-          category: "Social Responsibility",
-          description: "Ensures products are made according to rigorous social, environmental, and economic standards that protect workers, farmers, and the environment.",
-          region: "Global",
-          startYear: 1998,
-          imageUrl: "",
-          rating: 5
-        }
-      ];
-      
-      // Add sample certifications to database
-      for (const cert of sampleCertifications) {
-        await db.insert(certifications).values(cert);
-      }
-
       await this.initSampleAlternatives();
       await this.initSampleChallenges();
       
       // Sample resources
       const sampleResources: InsertResource[] = [
-        {
-          title: "The Complete Guide to Environmental Certifications",
-          type: "Guide",
-          description: "Learn about the different types of environmental certifications, their requirements, and how they benefit both businesses and the environment.",
-          imageUrl: "",
-          readTime: "12 min read",
-          link: "/resources/1"
-        },
-        {
-          title: "Implementing Sustainable Practices in Your Business",
-          type: "Webinar",
-          description: "A comprehensive webinar on how businesses can adopt sustainable practices and achieve environmental certifications.",
-          imageUrl: "",
-          readTime: "45 min video",
-          link: "/resources/2"
-        },
-        {
-          title: "How Company X Reduced Their Carbon Footprint by 75%",
-          type: "Case Study",
-          description: "A detailed case study examining how a major corporation significantly reduced their environmental impact through certification and sustainable practices.",
-          imageUrl: "",
-          readTime: "8 min read",
-          link: "/resources/3"
-        },
-        {
-          title: "Understanding Carbon Offset Certifications",
-          type: "Guide",
-          description: "An in-depth explanation of carbon offset certifications, how they work, and their real impact on climate change mitigation.",
-          imageUrl: "",
-          readTime: "15 min read",
-          link: "/resources/4"
-        },
-        {
-          title: "The Economic Benefits of Going Green",
-          type: "Case Study",
-          description: "Research showing how environmentally certified companies outperform their non-certified counterparts in the long term.",
-          imageUrl: "",
-          readTime: "10 min read",
-          link: "/resources/5"
-        }
-        ,
         {
           title: "10 Bold Ideas Driving a Sustainable Future (TED playlist)",
           type: "Webinar",

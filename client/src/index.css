@@ -82,8 +82,8 @@
   }
 
   ::selection {
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    background: transparent;
+    color: inherit;
   }
 
   :focus-visible {

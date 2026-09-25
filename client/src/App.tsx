@@ -7,8 +7,6 @@ import Home from "@/pages/home";
 import Welcome from "@/pages/welcome";
 import AuthPage from "@/pages/auth-page";
 import Resources from "@/pages/resources";
-import Impact from "@/pages/impact";
-import Contact from "@/pages/contact";
 import DailyTips from "@/pages/daily-tips";
 import EcoAlternatives from "@/pages/eco-alternatives";
 import GreenNews from "@/pages/green-news";
@@ -29,10 +27,8 @@ function Router() {
       <Route path="/green-news">{() => <ProtectedRoute component={GreenNews} />}</Route>
       <Route path="/eco-challenges">{() => <ProtectedRoute component={EcoChallenges} />}</Route>
       <Route path="/carbon-footprint">{() => <ProtectedRoute component={CarbonFootprint} />}</Route>
-      <Route path="/impact">{() => <ProtectedRoute component={Impact} />}</Route>
       <Route path="/resources">{() => <ProtectedRoute component={Resources} />}</Route>
       <Route path="/recycling-guide">{() => <ProtectedRoute component={RecyclingGuide} />}</Route>
-      <Route path="/contact">{() => <ProtectedRoute component={Contact} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

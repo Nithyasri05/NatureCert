@@ -29,22 +29,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   ecoTipLikes: many(ecoTipLikes),
 }));
 
-// Certifications
-export const certifications = pgTable("certifications", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  category: text("category").notNull(),
-  description: text("description").notNull(),
-  region: text("region").notNull(),
-  startYear: integer("start_year").notNull(),
-  imageUrl: text("image_url"),
-  rating: integer("rating").notNull().default(3),
-});
-
-export const insertCertificationSchema = createInsertSchema(certifications).omit({
-  id: true,
-});
-
 // Resources
 export const resources = pgTable("resources", {
   id: serial("id").primaryKey(),
@@ -250,9 +234,6 @@ export const recyclingCategoriesRelations = relations(recyclingCategories, ({ ma
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type Certification = typeof certifications.$inferSelect;
-export type InsertCertification = z.infer<typeof insertCertificationSchema>;
 
 export type Resource = typeof resources.$inferSelect;
 export type InsertResource = z.infer<typeof insertResourceSchema>;
