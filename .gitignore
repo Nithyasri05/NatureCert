@@ -1,11 +1,15 @@
 node_modules/
 dist/
-public/
 .env
 .env.*
 .env.example
-README.md
 .cache/
+!README.md
+!client/public/
+!client/public/favicon.png
+!client/public/naturecert.svg
+!docs/
+!docs/**/*.png
 .DS_Store
 .vscode/
 .idea/
